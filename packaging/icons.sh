@@ -4,7 +4,7 @@
 #   assets/app-icon/deckcraft.ico    Windows (16–256 px, from hicolor/*)
 #   assets/app-icon/deckcraft.icns   macOS (16–1024 px, from deckcraft-1024.png; needs sips + iconutil)
 #
-# The PNGs themselves are rendered by DeckCraft from assets/app-icon/icon-source.deckcraft.
+# The PNGs themselves are rendered from assets/app-icon/shoof.svg (resvg).
 # The outputs are committed, so builds and packaging never need these tools; package scripts
 # call this only when an output is missing.
 #
