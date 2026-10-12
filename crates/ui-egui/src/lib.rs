@@ -19,6 +19,7 @@ pub mod ribbon;
 pub mod show;
 pub mod sorter;
 pub mod status;
+pub mod studio_mark;
 pub mod textures;
 pub mod theme;
 pub mod thumbs;
@@ -151,7 +152,7 @@ pub const UI_COMMANDS: &[(&str, &str, Option<&str>, &str)] = &[
     ("show.presenter", "Presenter View", None, "{on?: bool}"),
     ("show.end", "End Show", None, "{}"),
     ("app.home", "Home", None, "{on?}"),
-    ("app.about", "About DeckCraft", None, "{}"),
+    ("app.about", "About shoof", None, "{}"),
     ("app.palette", "Command Palette", Some("Cmd+Shift+P"), "{}"),
     ("app.preferences", "Preferences…", Some("Cmd+,"), "{}"),
     ("app.openDialog", "Open…", None, "{purpose?}"),
@@ -516,7 +517,7 @@ impl SlideApp {
         } else if lower.ends_with(".txt") || lower.ends_with(".md") {
             "slide.fromOutline"
         } else {
-            self.set_status(format!("{name}: DeckCraft can't open this kind of file"));
+            self.set_status(format!("{name}: shoof can't open this kind of file"));
             return;
         };
         let p = if cmd == "slide.fromOutline" { json!({"text": String::from_utf8_lossy(bytes)}) } else { json!({"name": name, "data": data}) };

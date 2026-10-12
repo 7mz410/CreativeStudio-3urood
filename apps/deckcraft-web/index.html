@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <title>DeckCraft</title>
+  <title>shoof</title>
   <link data-trunk rel="rust" data-bin="deckcraft-web" data-wasm-opt="z" data-weak-refs />
   <link data-trunk rel="icon" href="../../assets/app-icon/hicolor/32x32/apps/ai.storyteller.deckcraft.png" />
   <style>
@@ -11,10 +11,66 @@
     #deckcraft_canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
     #deckcraft_loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
       color: #b8b8b8; font: 14px system-ui, sans-serif; pointer-events: none; }
+  
+    /* Creative Studio loading screen: the flying star */
+    .ss-scene { position: relative; width: 300px; height: 230px; --c: #eb1b3c; }
+    .ss-shoe { position: absolute; width: 96px; left: 50%; top: 30px; margin-left: -48px; transform-origin: 50% 55%;
+      animation: ss-fly 2.4s cubic-bezier(.3,.1,.3,1) infinite; }
+    @keyframes ss-fly {
+      0% { transform: translate(200px, 120px) rotate(0deg) scale(.6); opacity: 0; }
+      8% { opacity: 1; }
+      45% { transform: translate(30px, -50px) rotate(-540deg) scale(1); }
+      62% { transform: translate(0, 70px) rotate(-760deg) scale(1); }
+      67% { transform: translate(0, 70px) rotate(-720deg) scale(1.15, .8); }
+      74% { transform: translate(0, 40px) rotate(-725deg) scale(.95, 1.05); }
+      80%, 92% { transform: translate(0, 70px) rotate(-720deg) scale(1); opacity: 1; }
+      100% { transform: translate(-40px, 70px) rotate(-720deg) scale(.9); opacity: 0; } }
+    .ss-shadow { position: absolute; left: 50%; top: 186px; width: 90px; height: 14px; margin-left: -45px;
+      background: rgba(0,0,0,.35); border-radius: 50%; filter: blur(2px); animation: ss-shadow 2.4s cubic-bezier(.3,.1,.3,1) infinite; }
+    @keyframes ss-shadow { 0%, 30% { transform: scale(.2); opacity: 0; } 62%, 80% { transform: scale(1); opacity: 1; }
+      74% { transform: scale(.7); } 100% { transform: translateX(-40px) scale(.9); opacity: 0; } }
+    .ss-whoosh { position: absolute; inset: 0; animation: ss-whoosh 2.4s linear infinite; }
+    .ss-whoosh i { position: absolute; height: 4px; border-radius: 4px; background: var(--c); opacity: .7; filter: brightness(1.5); }
+    .ss-whoosh i:nth-child(1) { width: 40px; right: 20px; top: 60px; }
+    .ss-whoosh i:nth-child(2) { width: 26px; right: 50px; top: 80px; }
+    .ss-whoosh i:nth-child(3) { width: 34px; right: 0; top: 100px; }
+    @keyframes ss-whoosh { 0%, 10% { opacity: 0; transform: translateX(0); } 25% { opacity: 1; } 45%, 100% { opacity: 0; transform: translateX(-120px); } }
+    .ss-name { position: absolute; bottom: -10px; width: 100%; text-align: center; direction: ltr; color: var(--ink, #f2f2f2);
+      font: 800 32px/1 "Bricolage Grotesque", system-ui, sans-serif; letter-spacing: -.5px; }
+    .ss-name b { color: var(--c); filter: brightness(1.4); }
+    .ss-bar { position: absolute; bottom: -40px; left: 25%; width: 50%; height: 6px; border-radius: 6px; background: #ffffff1a; overflow: hidden; }
+    .ss-bar span { display: block; height: 100%; width: 40%; background: var(--c); filter: brightness(1.4); border-radius: 6px; animation: ss-bar 1.4s ease-in-out infinite; }
+    @keyframes ss-bar { 0% { transform: translateX(-100%); } 100% { transform: translateX(260%); } }
+    .ss-shoe svg { width: 100%; height: auto; display: block; }
+    #status:not(.err) { display: none; }
   </style>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&display=swap" rel="stylesheet">
 </head>
 <body>
   <canvas id="deckcraft_canvas"></canvas>
-  <div id="deckcraft_loading">Loading DeckCraft&hellip;</div>
+  <div id="deckcraft_loading"><div class="ss-scene"><div class="ss-whoosh"><i></i><i></i><i></i></div><div class="ss-shadow"></div><div class="ss-shoe"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 145.4 150.723">
+  <defs>
+    <style>
+      .cls-1{fill:#eb1b3c}
+      .cls-2{fill:#0d2d3f}
+    </style>
+  </defs>
+  
+  <g id="Asset_19" data-name="Asset 19">
+    <g>
+      <g>
+        <g>
+          <path d="M145.334 83.513 C145.314 83.653 145.284 83.793 145.254 83.932 C144.734 86.283 142.854 88.112 140.464 88.543 L93.764 96.942 L87.004 145.552 C86.644 148.143 84.644 150.203 82.064 150.643 C81.934 150.663 81.804 150.682 81.674 150.692 C81.464 150.713 81.264 150.723 81.064 150.723 C78.834 150.723 76.764 149.482 75.724 147.463 L53.544 104.172 L7.054 112.463 C4.514 112.922 1.964 111.692 0.724 109.422 C-0.506 107.153 -0.146 104.343 1.624 102.463 L37.254 64.413 C39.514 61.992 43.314 61.872 45.734 64.132 C48.154 66.403 48.274 70.192 46.004 72.612 L22.724 97.482 L55.804 91.572 C58.394 91.112 60.994 92.403 62.194 94.742 L77.664 124.942 L77.734 125.072 L82.474 90.982 C82.834 88.413 84.804 86.362 87.354 85.903 L120.774 79.893 L120.614 79.812 L90.264 64.362 C87.984 63.203 86.694 60.723 87.044 58.192 L91.764 23.793 L91.694 23.872 L91.684 23.882 L68.384 48.653 C66.554 50.603 63.654 51.103 61.274 49.882 L34.514 36.172 C31.564 34.663 30.404 31.052 31.914 28.103 C33.424 25.153 37.044 23.982 39.984 25.492 L62.734 37.153 L95.894 1.882 C97.654 0.013 100.394 -0.518 102.724 0.533 C102.764 0.543 102.814 0.562 102.854 0.583 C105.214 1.713 106.564 4.223 106.214 6.812 L99.504 55.603 L142.124 77.283 C144.414 78.453 145.714 80.963 145.334 83.513 Z" class="cls-1"/>
+        </g>
+      </g>
+      <g>
+        <path d="M102.724 0.533 L91.694 23.872 L91.684 23.882 L68.384 48.653 C66.554 50.603 63.654 51.103 61.274 49.882 L34.514 36.172 C31.564 34.663 30.404 31.052 31.914 28.103 C33.424 25.153 37.044 23.982 39.984 25.492 L62.734 37.153 L95.894 1.882 C97.654 0.013 100.394 -0.518 102.724 0.533 Z" class="cls-2"/>
+      </g>
+      <g>
+        <path d="M145.254 83.932 C144.734 86.283 142.854 88.112 140.464 88.543 L93.764 96.942 L87.004 145.552 C86.644 148.143 84.644 150.203 82.064 150.643 C81.934 150.663 81.804 150.682 81.674 150.692 L77.664 124.942 L77.734 125.072 L82.474 90.982 C82.834 88.413 84.804 86.362 87.354 85.903 L120.774 79.893 L120.614 79.812 Z" class="cls-2"/>
+      </g>
+    </g>
+  </g>
+</svg></div><div class="ss-name"><b>shoof</b></div><div class="ss-bar"><span></span></div></div></div>
 </body>
 </html>

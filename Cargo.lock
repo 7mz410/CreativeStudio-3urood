@@ -1146,6 +1146,7 @@ dependencies = [
  "serde",
  "serde_json",
  "toml",
+ "vello_cpu 0.2.0",
 ]
 
 [[package]]
