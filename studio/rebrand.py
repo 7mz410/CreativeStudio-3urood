@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply the shoof (Creative Studio) branding on top of upstream DeckCraft.
+"""Apply the 3urood (Creative Studio) branding on top of upstream DeckCraft.
 
 Only user-visible text is rebranded; crate names, the file format and other internals keep their
 upstream names so `git merge upstream/main` stays easy. The script is idempotent: after merging
@@ -12,10 +12,10 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-NAME = 'shoof'
-REPO = 'https://github.com/7mz410/CreativeStudio-shoof'
+NAME = '3urood'
+REPO = 'https://github.com/7mz410/CreativeStudio-3urood'
 SITE = 'https://studio.creative.ps'
-APP_SITE = 'https://shoof.studio.creative.ps'
+APP_SITE = 'https://3urood.studio.creative.ps'
 # Persisted names and legal lines; renaming them would lose settings or misstate copyright.
 KEEP = ('by the ArtCraft team', 'Application Support/DeckCraft', '/roaming/DeckCraft', 'the DeckCraft authors', 'DeckCraft contributors', 'DECKCRAFT_')
 
@@ -28,7 +28,7 @@ RULES = [
     ('crates/engine/src/links.rs', 'pub const APP_PAGE: &str = "https://getartcraft.com/apps/deckcraft";', f'pub const APP_PAGE: &str = "{APP_SITE}";'),
     ('crates/engine/src/links.rs', 'pub const GITHUB: &str = "https://github.com/storytold/deckcraft";', f'pub const GITHUB: &str = "{REPO}";'),
     ('crates/engine/src/links.rs', 'pub const ISSUES: &str = "https://github.com/storytold/deckcraft/issues";', f'pub const ISSUES: &str = "{REPO}/issues";'),
-    # The mark: the shoof star (studio_mark.rs, generated from docs/studio/shoof.svg).
+    # The mark: the 3urood star (studio_mark.rs, generated from docs/studio/3urood.svg).
     ('crates/ui-egui/Cargo.toml', 'egui = { workspace = true }\n', 'egui = { workspace = true }\nvello_cpu = { workspace = true }\n', 'vello_cpu'),
     ('crates/ui-egui/src/lib.rs', 'pub mod canvas;\n', 'pub mod canvas;\npub mod studio_mark;\n', 'pub mod studio_mark;'),
     ('crates/ui-egui/src/dialogs.rs', """    let orange = Color32::from_rgb(0xF2, 0x6B, 0x1D);
@@ -43,19 +43,19 @@ RULES = [
         Color32::WHITE,
         Stroke::NONE,
     ));
-""", """    // Creative Studio: the shoof star.
+""", """    // Creative Studio: the 3urood star.
     crate::studio_mark::paint(p, r);
 """),
     ('crates/ui-egui/src/dialogs.rs', 'use egui::{Align2, Color32, CornerRadius, Rect, Sense, Stroke, Ui, pos2, vec2};', 'use egui::{Align2, CornerRadius, Rect, Sense, Stroke, Ui, pos2, vec2};'),
     # About and start screen: our links, no Discord.
     ('crates/ui-egui/src/dialogs.rs', '        ui.hyperlink_to("Join our community on Discord", deckcraft_engine::links::DISCORD);\n', ''),
-    ('crates/ui-egui/src/dialogs.rs', 'ui.hyperlink_to("getartcraft.com/apps/deckcraft", deckcraft_engine::links::APP_PAGE);', 'ui.hyperlink_to("shoof.studio.creative.ps", deckcraft_engine::links::APP_PAGE);'),
+    ('crates/ui-egui/src/dialogs.rs', 'ui.hyperlink_to("getartcraft.com/apps/deckcraft", deckcraft_engine::links::APP_PAGE);', 'ui.hyperlink_to("3urood.studio.creative.ps", deckcraft_engine::links::APP_PAGE);'),
     ('crates/ui-egui/src/dialogs.rs', '"Presentations and slide shows, rebuilt from scratch in pure Rust."', '"Presentations and slide shows, part of the Creative Studio suite. Built on DeckCraft by the ArtCraft team."'),
     ('crates/ui-egui/src/dialogs.rs', 'ui.hyperlink_to("Join the ArtCraft community on Discord", deckcraft_engine::links::DISCORD);', 'ui.hyperlink_to("Creative Studio", deckcraft_engine::links::WEBSITE);'),
     # Web page and packages.
     ('apps/deckcraft-web/index.html', '<title>DeckCraft</title>', f'<title>{NAME}</title>'),
     ('apps/deckcraft-web/index.html', 'Loading DeckCraft&hellip;', f'Loading {NAME}&hellip;', 'ss-scene'),  # or the splash
-    ('packaging/macos/Info.plist.in', '<string>ai.storyteller.deckcraft</string>', '<string>ps.creative.studio.shoof</string>'),
+    ('packaging/macos/Info.plist.in', '<string>ai.storyteller.deckcraft</string>', '<string>ps.creative.studio.3urood</string>'),
     ('packaging/windows/deckcraft.wxs', '<Property Id="ARPURLINFOABOUT" Value="https://getartcraft.com/apps/deckcraft" />', f'<Property Id="ARPURLINFOABOUT" Value="{APP_SITE}" />'),
     ('packaging/windows/deckcraft.wxs', '<Property Id="ARPURLUPDATEINFO" Value="https://getartcraft.com/apps/deckcraft" />', f'<Property Id="ARPURLUPDATEINFO" Value="{REPO}/releases" />'),
     ('packaging/windows/deckcraft.wxs', '<Property Id="ARPHELPLINK" Value="https://discord.gg/artcraft" />', f'<Property Id="ARPHELPLINK" Value="{REPO}/issues" />'),

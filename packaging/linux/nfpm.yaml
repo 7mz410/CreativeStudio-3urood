@@ -14,7 +14,7 @@ section: editors
 priority: optional
 maintainer: ${DECKCRAFT_MAINTAINER}
 vendor: Learning Machines LLC
-homepage: https://shoof.studio.creative.ps
+homepage: https://3urood.studio.creative.ps
 license: MIT OR Apache-2.0
 description: |-
   Open-source, native presentation app that works the way PowerPoint users

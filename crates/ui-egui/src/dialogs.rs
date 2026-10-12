@@ -43,7 +43,7 @@ fn title(id: &str) -> &'static str {
         "renameShape" => "Rename",
         "renameLayout" => "Rename Layout",
         "paragraph" => "Paragraph",
-        "about" => "About shoof",
+        "about" => "About 3urood",
         "preferences" => "Preferences",
         "export" => "Export",
         "symbol" => "Symbol",
@@ -55,8 +55,8 @@ fn title(id: &str) -> &'static str {
         "chartData" => "Chart Data",
         "trim" => "Trim Media",
         "smartart" => "Choose a SmartArt Graphic",
-        "quit" => "shoof",
-        _ => "shoof",
+        "quit" => "3urood",
+        _ => "3urood",
     }
 }
 
@@ -791,13 +791,13 @@ pub fn about(_app: &mut SlideApp, ui: &mut Ui) {
     ui.vertical_centered(|ui| {
         let (r, _) = ui.allocate_exact_size(vec2(64.0, 64.0), Sense::hover());
         paint_logo(ui.painter(), r);
-        ui.label(egui::RichText::new("shoof").font(theme::bold(22.0)));
+        ui.label(egui::RichText::new("3urood").font(theme::bold(22.0)));
         ui.label(egui::RichText::new(version_line()).color(t.text_dim));
         ui.add_space(6.0);
         ui.label("Presentations and slide shows, part of the Creative Studio suite. Built on DeckCraft by the ArtCraft team.");
         ui.label("An open-source, clean-room project. Not affiliated with Microsoft.");
         ui.add_space(6.0);
-        ui.hyperlink_to("shoof.studio.creative.ps", deckcraft_engine::links::APP_PAGE);
+        ui.hyperlink_to("3urood.studio.creative.ps", deckcraft_engine::links::APP_PAGE);
         ui.hyperlink_to("Source on GitHub", deckcraft_engine::links::GITHUB);
         ui.add_space(6.0);
         ui.label(egui::RichText::new("MIT OR Apache-2.0 · © 2026 ArtCraft Team and the DeckCraft contributors").size(11.0).color(t.text_faint));
@@ -821,7 +821,7 @@ pub fn version_line() -> String {
 
 /// DeckCraft's mark, drawn in code: a slide card with a play triangle in our orange.
 pub fn paint_logo(p: &egui::Painter, r: Rect) {
-    // Creative Studio: the shoof star.
+    // Creative Studio: the 3urood star.
     crate::studio_mark::paint(p, r);
 }
 
@@ -834,7 +834,7 @@ pub fn start_screen(app: &mut SlideApp, ui: &mut Ui) {
             ui.add_space(40.0);
             let (r, _) = ui.allocate_exact_size(vec2(40.0, 40.0), Sense::hover());
             paint_logo(ui.painter(), r);
-            ui.label(egui::RichText::new("shoof").font(theme::bold(26.0)));
+            ui.label(egui::RichText::new("3urood").font(theme::bold(26.0)));
         });
         if app.home_open() {
             let title = app.session.active().map(|d| d.title()).unwrap_or_default();

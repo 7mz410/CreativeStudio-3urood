@@ -1,8 +1,8 @@
 <p align="center">
-  <img alt="shoof" src="docs/studio/shoof.svg" width="140">
+  <img alt="3urood" src="docs/studio/3urood.svg" width="140">
 </p>
 
-<h1 align="center">shoof</h1>
+<h1 align="center">3urood</h1>
 
 <p align="center">
   <b>Free, open-source presentations — part of the Creative Studio creative suite.</b><br>
@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://shoof.studio.creative.ps/">shoof.studio.creative.ps</a> ·
+  <a href="https://3urood.studio.creative.ps/">3urood.studio.creative.ps</a> ·
   <a href="https://studio.creative.ps/">studio.creative.ps</a>
 </p>
 
@@ -21,10 +21,10 @@
 
 ## Built on DeckCraft
 
-shoof is a fork of **[DeckCraft](https://github.com/storytold/deckcraft)**, the open-source, clean-room
+3urood is a fork of **[DeckCraft](https://github.com/storytold/deckcraft)**, the open-source, clean-room
 application written in Rust by the **[ArtCraft](https://getartcraft.com/)** team and the DeckCraft
 contributors. Almost everything that makes this app work is their work. Thank you. If you like
-shoof, please star and support the upstream project as well.
+3urood, please star and support the upstream project as well.
 
 What we add: the Creative Studio identity, the Arabic interface laid out right to left, and Arabic
 features to come. Our changes are listed in [`studio/CHANGES.md`](studio/CHANGES.md).
@@ -44,7 +44,7 @@ Upstream's own README, with the full feature list and build instructions, is in
 | [trteeb](https://github.com/7mz410/CreativeStudio-trteeb) | Page layout | DesignCraft |
 | [klmat](https://github.com/7mz410/CreativeStudio-klmat) | Word processing | WordCraft |
 | [arqam](https://github.com/7mz410/CreativeStudio-arqam) | Spreadsheets | GridCraft |
-| **shoof** | Presentations | DeckCraft |
+| **3urood** | Presentations | DeckCraft |
 | [muhandes](https://github.com/7mz410/CreativeStudio-muhandes) | Computer-aided design | CADCraft |
 
 ## Building

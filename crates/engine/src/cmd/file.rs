@@ -74,7 +74,7 @@ pub fn open_presentation(name: &str, bytes: &[u8]) -> Result<Presentation> {
         }
         return Ok(p);
     }
-    Err(EngineError::Other(format!("{name}: not a presentation shoof can read")))
+    Err(EngineError::Other(format!("{name}: not a presentation 3urood can read")))
 }
 
 pub fn add_opened(s: &mut Session, name: &str, path: Option<String>, p: Presentation) -> usize {

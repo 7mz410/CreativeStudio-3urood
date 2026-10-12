@@ -28,9 +28,9 @@
 
     <Icon Id="DeckcraftIcon.ico" SourceFile="$(var.IconPath)" />
     <Property Id="ARPPRODUCTICON" Value="DeckcraftIcon.ico" />
-    <Property Id="ARPURLINFOABOUT" Value="https://shoof.studio.creative.ps" />
-    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/7mz410/CreativeStudio-shoof/releases" />
-    <Property Id="ARPHELPLINK" Value="https://github.com/7mz410/CreativeStudio-shoof/issues" />
+    <Property Id="ARPURLINFOABOUT" Value="https://3urood.studio.creative.ps" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/7mz410/CreativeStudio-3urood/releases" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/7mz410/CreativeStudio-3urood/issues" />
 
     <StandardDirectory Id="ProgramFiles6432Folder">
       <Directory Id="INSTALLFOLDER" Name="DeckCraft" />
