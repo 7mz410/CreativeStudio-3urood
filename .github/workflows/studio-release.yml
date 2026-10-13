@@ -20,5 +20,5 @@ jobs:
       app: 3urood
       package: deckcraft
       version_var: DECKCRAFT_VERSION
-      bundle: DeckCraft.app
+      bundle: 3urood.app
       tag: ${{ github.ref_name }}
