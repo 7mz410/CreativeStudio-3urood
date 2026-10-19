@@ -46,12 +46,13 @@ RULES = [
 """, """    // Creative Studio: the 3urood star.
     crate::studio_mark::paint(p, r);
 """),
-    ('crates/ui-egui/src/dialogs.rs', 'use egui::{Align2, Color32, CornerRadius, Rect, Sense, Stroke, Ui, pos2, vec2};', 'use egui::{Align2, CornerRadius, Rect, Sense, Stroke, Ui, pos2, vec2};'),
+    ('crates/ui-egui/src/dialogs.rs', 'use egui::{Align2, Color32, CornerRadius, Rect, Sense, Stroke, Ui, pos2, vec2};', 'use egui::{Align2, Color32, CornerRadius, Rect, Sense, Stroke, Ui, vec2};'),
     # About and start screen: our links, no Discord.
     ('crates/ui-egui/src/dialogs.rs', '        ui.hyperlink_to("Join our community on Discord", deckcraft_engine::links::DISCORD);\n', ''),
     ('crates/ui-egui/src/dialogs.rs', 'ui.hyperlink_to("getartcraft.com/apps/deckcraft", deckcraft_engine::links::APP_PAGE);', 'ui.hyperlink_to("3urood.studio.creative.ps", deckcraft_engine::links::APP_PAGE);'),
     ('crates/ui-egui/src/dialogs.rs', '"Presentations and slide shows, rebuilt from scratch in pure Rust."', '"Presentations and slide shows, part of the Creative Studio suite. Built on DeckCraft by the ArtCraft team."'),
-    ('crates/ui-egui/src/dialogs.rs', 'ui.hyperlink_to("Join the ArtCraft community on Discord", deckcraft_engine::links::DISCORD);', 'ui.hyperlink_to("Creative Studio", deckcraft_engine::links::WEBSITE);'),
+    ('crates/ui-egui/src/backstage.rs', '            ui.hyperlink_to("Join our community on Discord", deckcraft_engine::links::DISCORD);\n', ''),
+    ('crates/ui-egui/src/backstage.rs', 'ui.hyperlink_to("Join the ArtCraft community on Discord", deckcraft_engine::links::DISCORD);', 'ui.hyperlink_to("Creative Studio", deckcraft_engine::links::WEBSITE);'),
     # Web page and packages.
     ('apps/deckcraft-web/index.html', '<title>DeckCraft</title>', f'<title>{NAME}</title>'),
     ('apps/deckcraft-web/index.html', 'Loading DeckCraft&hellip;', f'Loading {NAME}&hellip;', 'ss-scene'),  # or the splash
