@@ -5646,3 +5646,26 @@ fn invalid_ids_array_never_falls_back_to_the_selection() {
         assert!(s.doc().unwrap().shape(deckcraft_model::ShapeId(a as u32)).is_some(), "shape deleted for {ids}");
     }
 }
+
+/// MM4: moving a group's child through a command refits the group's box to its children, as
+/// PowerPoint does, and the children stay where they were drawn.
+#[test]
+fn moving_a_group_child_refits_the_group() {
+    let mut s = session();
+    s.execute("slide.new", &json!({"layout": "blank"})).unwrap();
+    let ins = |s: &mut Session, p: serde_json::Value| s.execute("shape.insert", &p).unwrap()["id"].as_u64().unwrap();
+    let a = ins(&mut s, json!({"preset": "rect", "rect": [100, 100, 100, 50]}));
+    let b = ins(&mut s, json!({"preset": "rect", "rect": [300, 100, 100, 50]}));
+    let g = s.execute("arrange.group", &json!({"ids": [a, b]})).unwrap()["id"].as_u64().unwrap();
+    let gb = |s: &Session| s.doc().unwrap().shape(ShapeId(g as u32)).unwrap().xfrm.unwrap();
+    assert_eq!((gb(&s).x, gb(&s).w), (100.0, 300.0));
+    s.execute("shape.move", &json!({"id": b, "dx": 100, "dy": 60})).unwrap();
+    let x = gb(&s);
+    assert_eq!((x.x, x.y, x.w, x.h), (100.0, 100.0, 400.0, 110.0), "group follows its children: {x:?}");
+    // The child is where it was moved to on the slide.
+    let r = s.execute("slide.inspect", &json!({})).unwrap();
+    assert!(r.to_string().contains("400"), "{r}");
+    s.execute("shape.setBounds", &json!({"ids": [a], "x": 20, "y": 20, "w": 100, "h": 50})).unwrap();
+    let x = gb(&s);
+    assert_eq!((x.x, x.y, x.w), (20.0, 20.0, 480.0), "{x:?}");
+}
