@@ -61,6 +61,96 @@ RULES = [
     ('packaging/windows/deckcraft.wxs', '<Property Id="ARPURLUPDATEINFO" Value="https://getartcraft.com/apps/deckcraft" />', f'<Property Id="ARPURLUPDATEINFO" Value="{REPO}/releases" />'),
     ('packaging/windows/deckcraft.wxs', '<Property Id="ARPHELPLINK" Value="https://discord.gg/artcraft" />', f'<Property Id="ARPHELPLINK" Value="{REPO}/issues" />'),
     ('packaging/linux/nfpm.yaml', 'homepage: https://getartcraft.com/apps/deckcraft', f'homepage: {APP_SITE}'),
+    # Native extension: native saves write `.3urood` (the same zip as `.deckcraft`, which still
+    # opens). Open and save lists name `3urood` first and keep `deckcraft`. The format id
+    # "deckcraft" stays as it is: it names the writer, not the extension.
+    ('crates/format/src/lib.rs', 'pub const EXTENSION: &str = "deckcraft";\n',
+     'pub const EXTENSION: &str = "deckcraft";\n'
+     '/// 3urood saves presentations as `.3urood` (the same contents as `.deckcraft`, which still opens).\n'
+     'pub const STUDIO_EXTENSION: &str = "3urood";\n', 'STUDIO_EXTENSION'),
+    ('crates/engine/src/cmd/file.rs', 'pub const WRITABLE_EXTENSIONS: &[&str] = &["deckcraft", "pptx"',
+     'pub const WRITABLE_EXTENSIONS: &[&str] = &["3urood", "deckcraft", "pptx"', '"3urood", "deckcraft", "pptx"'),
+    ('crates/ui-egui/src/lib.rs', '    lower.ends_with(".deckcraft")\n',
+     '    lower.ends_with(".3urood")\n        || lower.ends_with(".deckcraft")\n', 'lower.ends_with(".3urood")'),
+    ('crates/ui-egui/src/lib.rs', '            "deckcraft" => ("deckcraft", "deckcraft", false),',
+     '            "deckcraft" => ("3urood", "deckcraft", false),', '("3urood", "deckcraft", false)'),
+    ('crates/ui-egui/src/lib.rs', '        let ext = if format == "pptx" { "pptx" } else { "deckcraft" };',
+     '        let ext = if format == "pptx" { "pptx" } else { "3urood" };', 'else { "3urood" }'),
+    ('crates/ui-egui/src/backstage.rs', '("deckcraft", "3urood Presentation (*.deckcraft)"',
+     '("deckcraft", "3urood Presentation (*.3urood)"', '*.3urood)'),
+    ('apps/deckcraft/src/main.rs', '.add_filter("Presentations", &["deckcraft", "pptx", "potx", "ppsx"])\n'
+     '                    .add_filter("3urood", &["deckcraft"])',
+     '.add_filter("Presentations", &["3urood", "deckcraft", "pptx", "potx", "ppsx"])\n'
+     '                    .add_filter("3urood", &["3urood", "deckcraft"])', '["3urood", "deckcraft", "pptx"'),
+    ('apps/deckcraft-web/src/web.rs', 'const PRESENTATION_EXTS: &[&str] = &["deckcraft", "pptx", "potx", "ppsx", "txt", "md"];',
+     'const PRESENTATION_EXTS: &[&str] = &["3urood", "deckcraft", "pptx", "potx", "ppsx", "txt", "md"];', '&["3urood", "deckcraft"'),
+    ('apps/deckcraft-web/src/web.rs', '        Some("deckcraft") => "application/zip",',
+     '        Some("3urood" | "deckcraft") => "application/zip",', '"3urood" | "deckcraft"'),
+    ('crates/mcp/src/tools.rs', '"Open a .deckcraft or .pptx file by path.",',
+     '"Open a .3urood, .deckcraft or .pptx file by path.",', 'Open a .3urood, .deckcraft'),
+    ('crates/mcp/src/tools.rs', '"Save the active presentation (.deckcraft or .pptx by extension).",',
+     '"Save the active presentation (.3urood or .pptx by extension).",', '(.3urood or .pptx by extension)'),
+    ('crates/mcp/src/server.rs', 'Save with save_presentation (.deckcraft or .pptx).',
+     'Save with save_presentation (.3urood or .pptx).', 'save_presentation (.3urood or .pptx)'),
+    # Info.plist: 3urood is the owner type; the deckcraft type stays exported and openable. There is
+    # no 3urood document icon yet (file icons/ has none), so the document uses the app icon
+    # ("DeckCraft" in Resources), as the deckcraft type does.
+    ('packaging/macos/Info.plist.in', "  <!-- DeckCraft's own format: a zip of a JSON manifest plus media. -->\n  <key>UTExportedTypeDeclarations</key>\n  <array>\n",
+     '  <key>CFBundleDocumentTypes</key>\n'
+     '  <array>\n'
+     '    <dict>\n'
+     '      <key>CFBundleTypeName</key>\n'
+     '      <string>3urood Presentation</string>\n'
+     '      <key>CFBundleTypeRole</key>\n'
+     '      <string>Editor</string>\n'
+     '      <key>LSHandlerRank</key>\n'
+     '      <string>Owner</string>\n'
+     '      <key>LSItemContentTypes</key>\n'
+     '      <array><string>ps.creative.studio.3urood.presentation</string></array>\n'
+     '    </dict>\n'
+     '    <dict>\n'
+     '      <key>CFBundleTypeName</key>\n'
+     '      <string>DeckCraft Presentation</string>\n'
+     '      <key>CFBundleTypeRole</key>\n'
+     '      <string>Editor</string>\n'
+     '      <key>LSHandlerRank</key>\n'
+     '      <string>Alternate</string>\n'
+     '      <key>LSItemContentTypes</key>\n'
+     '      <array><string>ai.storyteller.deckcraft.presentation</string></array>\n'
+     '    </dict>\n'
+     '  </array>\n'
+     "  <!-- 3urood's own format: the same zip as DeckCraft's, under its own name. -->\n"
+     '  <key>UTExportedTypeDeclarations</key>\n'
+     '  <array>\n'
+     '    <dict>\n'
+     '      <key>UTTypeIdentifier</key>\n'
+     '      <string>ps.creative.studio.3urood.presentation</string>\n'
+     '      <key>UTTypeDescription</key>\n'
+     '      <string>3urood Presentation</string>\n'
+     '      <key>UTTypeConformsTo</key>\n'
+     '      <array>\n'
+     '        <string>public.data</string>\n'
+     '        <string>public.presentation</string>\n'
+     '      </array>\n'
+     '      <key>UTTypeIconFile</key>\n'
+     '      <string>DeckCraft</string>\n'
+     '      <key>UTTypeTagSpecification</key>\n'
+     '      <dict>\n'
+     '        <key>public.filename-extension</key>\n'
+     '        <array><string>3urood</string></array>\n'
+     '        <key>public.mime-type</key>\n'
+     '        <array><string>application/x-3urood</string></array>\n'
+     '      </dict>\n'
+     '    </dict>\n'
+     "    <!-- DeckCraft's own format: still exported and opened. -->\n",
+     'ps.creative.studio.3urood.presentation'),
+    # Tests: a new test module (its file is ours, not upstream's) registered in the engine.
+    ('crates/engine/src/lib.rs', '#[cfg(test)]\nmod tests_keys;\n',
+     '#[cfg(test)]\nmod tests_keys;\n#[cfg(all(test, not(target_arch = "wasm32")))]\nmod tests_studio_ext;\n',
+     'mod tests_studio_ext;'),
+    ('studio/CHANGES.md', '- No Discord buttons; community links point to Creative Studio.\n',
+     '- Native saves are `.3urood` (the same contents as `.deckcraft`, which still opens); see the Info.plist.\n'
+     '- No Discord buttons; community links point to Creative Studio.\n', '`.3urood` (the same contents'),
 ]
 # Text in string literals and catalogs, before the general rename.
 LITERALS = []

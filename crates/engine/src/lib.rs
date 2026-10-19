@@ -783,3 +783,5 @@ mod soak_tests;
 mod tests;
 #[cfg(test)]
 mod tests_keys;
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod tests_studio_ext;

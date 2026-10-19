@@ -16,6 +16,8 @@ pub const MIMETYPE: &str = "application/vnd.storyteller.deckcraft+zip";
 /// Files written before the SlideCraft → DeckCraft rename (`.slidecraft`) are still read.
 pub const LEGACY_MIMETYPE: &str = concat!("application/vnd.storyteller.", "slide", "craft+zip");
 pub const EXTENSION: &str = "deckcraft";
+/// 3urood saves presentations as `.3urood` (the same contents as `.deckcraft`, which still opens).
+pub const STUDIO_EXTENSION: &str = "3urood";
 /// Format version written into the manifest.
 pub const VERSION: u32 = 1;
 /// Largest entry we will inflate (guards against zip bombs).

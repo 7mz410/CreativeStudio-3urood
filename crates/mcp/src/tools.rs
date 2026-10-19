@@ -101,14 +101,14 @@ pub fn tool_definitions() -> Vec<Value> {
         tool(
             "open_presentation",
             "Open presentation",
-            "Open a .deckcraft or .pptx file by path.",
+            "Open a .3urood, .deckcraft or .pptx file by path.",
             obj(json!({"path": string("File path")}), &["path"]),
             false,
         ),
         tool(
             "save_presentation",
             "Save presentation",
-            "Save the active presentation (.deckcraft or .pptx by extension).",
+            "Save the active presentation (.3urood or .pptx by extension).",
             obj(json!({"path": string("File path (optional when it was opened from a file)")}), &[]),
             false,
         ),

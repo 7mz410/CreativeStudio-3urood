@@ -143,7 +143,8 @@ fn purpose_of(purpose: &str) -> FilePurpose {
 }
 
 fn is_presentation_name(lower: &str) -> bool {
-    lower.ends_with(".deckcraft")
+    lower.ends_with(".3urood")
+        || lower.ends_with(".deckcraft")
         || lower.ends_with(".slidecraft")
         || lower.ends_with(".pptx")
         || lower.ends_with(".potx")
@@ -745,7 +746,7 @@ impl SlideApp {
             "jpeg" | "jpg" => ("jpg", "jpeg", false),
             "pptx" => ("pptx", "pptx", false),
             "outline" | "txt" => ("txt", "outline", false),
-            "deckcraft" => ("deckcraft", "deckcraft", false),
+            "deckcraft" => ("3urood", "deckcraft", false),
             "gif" => ("gif", "gif", false),
             other => {
                 self.set_status(format!("3urood can't export “{other}”"));
@@ -1281,7 +1282,7 @@ impl SlideApp {
 
     pub fn save_as_dialog(&mut self, format: &str) {
         let name = self.session.active().map(|d| d.title()).unwrap_or_else(|| "Presentation".into());
-        let ext = if format == "pptx" { "pptx" } else { "deckcraft" };
+        let ext = if format == "pptx" { "pptx" } else { "3urood" };
         let suggested = format!("{name}.{ext}");
         if let Some(pick) = self.services.pick_save.as_mut() {
             if let Some(path) = pick(&suggested) {

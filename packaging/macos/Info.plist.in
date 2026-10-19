@@ -45,9 +45,53 @@
   <key>NSHumanReadableCopyright</key>
   <string>Copyright © the DeckCraft authors. MIT OR Apache-2.0.</string>
 
-  <!-- DeckCraft's own format: a zip of a JSON manifest plus media. -->
+  <key>CFBundleDocumentTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeName</key>
+      <string>3urood Presentation</string>
+      <key>CFBundleTypeRole</key>
+      <string>Editor</string>
+      <key>LSHandlerRank</key>
+      <string>Owner</string>
+      <key>LSItemContentTypes</key>
+      <array><string>ps.creative.studio.3urood.presentation</string></array>
+    </dict>
+    <dict>
+      <key>CFBundleTypeName</key>
+      <string>DeckCraft Presentation</string>
+      <key>CFBundleTypeRole</key>
+      <string>Editor</string>
+      <key>LSHandlerRank</key>
+      <string>Alternate</string>
+      <key>LSItemContentTypes</key>
+      <array><string>ai.storyteller.deckcraft.presentation</string></array>
+    </dict>
+  </array>
+  <!-- 3urood's own format: the same zip as DeckCraft's, under its own name. -->
   <key>UTExportedTypeDeclarations</key>
   <array>
+    <dict>
+      <key>UTTypeIdentifier</key>
+      <string>ps.creative.studio.3urood.presentation</string>
+      <key>UTTypeDescription</key>
+      <string>3urood Presentation</string>
+      <key>UTTypeConformsTo</key>
+      <array>
+        <string>public.data</string>
+        <string>public.presentation</string>
+      </array>
+      <key>UTTypeIconFile</key>
+      <string>DeckCraft</string>
+      <key>UTTypeTagSpecification</key>
+      <dict>
+        <key>public.filename-extension</key>
+        <array><string>3urood</string></array>
+        <key>public.mime-type</key>
+        <array><string>application/x-3urood</string></array>
+      </dict>
+    </dict>
+    <!-- DeckCraft's own format: still exported and opened. -->
     <dict>
       <key>UTTypeIdentifier</key>
       <string>ai.storyteller.deckcraft.presentation</string>

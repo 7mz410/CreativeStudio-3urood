@@ -6,6 +6,7 @@ this list.
 - Branding (user-visible only, applied by `studio/rebrand.py`): the app name 3urood, the bundle id
   `ps.creative.studio.3urood`, links to 3urood.studio.creative.ps and this repository. Crate names,
   settings folders and the file format keep their upstream names.
+- Native saves are `.3urood` (the same contents as `.deckcraft`, which still opens); see the Info.plist.
 - No Discord buttons; community links point to Creative Studio.
 - App icon: the 3urood star on navy (`assets/app-icon/`).
 - Removed upstream's ArtCraft brand assets (`docs/brand/`), as their brand terms require of forks.
