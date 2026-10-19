@@ -5646,3 +5646,23 @@ fn invalid_ids_array_never_falls_back_to_the_selection() {
         assert!(s.doc().unwrap().shape(deckcraft_model::ShapeId(a as u32)).is_some(), "shape deleted for {ids}");
     }
 }
+
+/// In Slide Master / layout view the insert commands edit the master or layout; their answers say
+/// so with `editing`, and on slides carry no such key.
+#[test]
+fn insert_answers_carry_editing_in_master_and_layout_view() {
+    let mut s = session();
+    let ins = json!({"preset": "rect", "rect": [10.0, 10.0, 100.0, 100.0]});
+    s.execute("view.slideMaster", &json!({"layout": 0})).unwrap();
+    let r = s.execute("shape.insert", &ins).unwrap();
+    assert_eq!(r["editing"]["kind"], "layout", "{r}");
+    assert!(r["editing"]["name"].is_string(), "{r}");
+    let r = s.execute("insert.textBox", &json!({"rect": [10.0, 10.0, 100.0, 50.0], "text": "x"})).unwrap();
+    assert_eq!(r["editing"]["kind"], "layout", "{r}");
+    s.execute("view.slideMaster", &json!({"master": 0})).unwrap();
+    let r = s.execute("shape.insert", &ins).unwrap();
+    assert_eq!(r["editing"]["kind"], "master", "{r}");
+    s.execute("view.closeMaster", &json!({})).unwrap();
+    let r = s.execute("shape.insert", &ins).unwrap();
+    assert!(r.get("editing").is_none(), "{r}");
+}
