@@ -78,9 +78,10 @@ fn play_on_the_editor_media_bar_plays_the_selected_clip() {
 fn a_click_on_a_video_plays_or_pauses_it() {
     let mut s = Session::with_new();
     s.execute("slide.new", &json!({"layout": "blank"})).unwrap();
-    let r = s.execute("insert.audio", &json!({"name": "tone.wav", "data": deckcraft_engine::cmd::base64_encode(&wav(2.0))})).unwrap();
+    let r = s.execute("insert.audio", &json!({"name": "tone.wav", "data": deckcraft_engine::cmd::base64_encode(&wav(10.0))})).unwrap();
     let id = ShapeId(r["id"].as_u64().unwrap() as u32);
-    // Only videos play on a click; the clip's sound stands in for a film.
+    // Only videos play on a click; the clip's sound stands in for a film. It is long enough to
+    // still be playing when the last click lands.
     {
         let d = s.active_mut().unwrap();
         let slide = Arc::make_mut(&mut Arc::make_mut(&mut d.doc).slides[d.selection.slide]);
@@ -100,8 +101,12 @@ fn a_click_on_a_video_plays_or_pauses_it() {
     h.run_steps(3);
     let d = h.state().session.active().unwrap();
     let x = d.doc.slides[d.selection.slide].shape(id).unwrap().xfrm.unwrap();
-    let (slide, k) = (h.state().slide_rect.unwrap(), h.state().canvas_scale);
-    let centre = slide.min + vec2((x.x + x.w / 2.0) as f32 * k, (x.y + x.h / 2.0) as f32 * k);
+    // Where the clip's centre is on screen (a double click opens the Format pane, which moves it).
+    let centre_of = |h: &Harness<'_, SlideApp>| {
+        let (slide, k) = (h.state().slide_rect.unwrap(), h.state().canvas_scale);
+        slide.min + vec2((x.x + x.w / 2.0) as f32 * k, (x.y + x.h / 2.0) as f32 * k)
+    };
+    let mut centre = centre_of(&h);
 
     click(&mut h, centre);
     assert_eq!(h.state().session.active().unwrap().selection.shapes, vec![id], "the click selects it");
@@ -110,6 +115,23 @@ fn a_click_on_a_video_plays_or_pauses_it() {
     h.run_steps(40);
     click(&mut h, centre);
     assert!(!h.state().media.is_playing(id), "the next click pauses it");
+
+    // A double or triple click plays it once: only the first click counts.
+    for clicks in [2, 3] {
+        h.run_steps(40);
+        assert!(!h.state().media.is_playing(id));
+        for _ in 0..clicks {
+            h.event(egui::Event::PointerButton { pos: centre, button: PointerButton::Primary, pressed: true, modifiers: Modifiers::NONE });
+            h.run_steps(1);
+            h.event(egui::Event::PointerButton { pos: centre, button: PointerButton::Primary, pressed: false, modifiers: Modifiers::NONE });
+            h.run_steps(1);
+        }
+        assert!(h.state().media.is_playing(id), "{clicks} quick clicks leave it playing");
+        h.run_steps(40);
+        centre = centre_of(&h);
+        click(&mut h, centre);
+        assert!(!h.state().media.is_playing(id));
+    }
 
     // A click the Eyedropper takes does not play the video.
     h.run_steps(40);

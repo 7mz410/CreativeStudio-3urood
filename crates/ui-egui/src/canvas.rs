@@ -417,7 +417,8 @@ fn media_bar(app: &mut SlideApp, ui: &mut Ui, xf: Xf) {
 /// A click on a video plays or pauses it, as its bar's Play button does. The click selects it as
 /// usual; dragging it moves it without playing, and a modifier key leaves it to the selection.
 fn media_click(app: &mut SlideApp, ui: &Ui, resp: &egui::Response, xf: Xf) {
-    if !resp.clicked() || resp.double_clicked() || !ui.input(|i| i.modifiers.is_none()) {
+    // The second and third clicks of a double or triple click leave the first one's choice.
+    if !resp.clicked() || resp.double_clicked() || resp.triple_clicked() || !ui.input(|i| i.modifiers.is_none()) {
         return;
     }
     let Some(p) = resp.interact_pointer_pos() else { return };
