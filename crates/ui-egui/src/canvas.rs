@@ -258,12 +258,16 @@ pub fn show(app: &mut SlideApp, ui: &mut Ui) {
         ruler(&painter, avail, slide_rect, scale, &t);
         ruler_markers(app, ui, &painter, avail, xf, &t);
     }
+    // A click the Eyedropper takes is not also a click on a video.
+    let sampling = app.eyedropper.is_some();
     pointer(app, ui, &resp, xf);
     if !app.anim_preview_active() {
         overlays(app, ui, &painter, xf, &t);
         ime_output(app, ui, xf);
         media_bar(app, ui, xf);
-        media_click(app, ui, &resp, xf);
+        if !sampling {
+            media_click(app, ui, &resp, xf);
+        }
         gif_buttons(app, ui, xf, &gifs);
         if resp.secondary_clicked()
             && let Some(p) = resp.interact_pointer_pos()

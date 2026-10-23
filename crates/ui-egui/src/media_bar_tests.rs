@@ -111,6 +111,16 @@ fn a_click_on_a_video_plays_or_pauses_it() {
     click(&mut h, centre);
     assert!(!h.state().media.is_playing(id), "the next click pauses it");
 
+    // A click the Eyedropper takes does not play the video.
+    h.run_steps(40);
+    crate::eyedropper::note_open_menu(&h.ctx, egui::Id::new("fill-colour"));
+    crate::eyedropper::request(&h.ctx);
+    h.run_steps(2);
+    assert!(h.state().eyedropper.is_some(), "the Eyedropper waits for a click");
+    click(&mut h, centre);
+    assert!(h.state().eyedropper.is_none(), "the Eyedropper took the click");
+    assert!(!h.state().media.is_playing(id), "the video did not start");
+
     // A drag moves it without playing.
     h.run_steps(40);
     h.event(egui::Event::PointerButton { pos: centre, button: PointerButton::Primary, pressed: true, modifiers: Modifiers::NONE });
