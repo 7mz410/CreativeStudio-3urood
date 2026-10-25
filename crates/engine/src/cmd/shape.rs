@@ -90,7 +90,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Shape Fill",
             ["Shape Format", "Shape Styles"],
             None,
-            "{color? | none?: true | gradient?: {stops: [[pos, color]], angle?, kind?: linear|radial} | picture?: base64 | pattern?: {preset, fg, bg} | transparency?: 0..1 | reset?: true, ids?}; pictureProps?: {tile?: bool, offsetX?, offsetY?: pt, scaleX?, scaleY?: 0..10, align?: tl|t|tr|l|ctr|r|bl|b|br, mirror?: none|x|y|xy, stretch?: [l, t, r, b] fractions, rotateWithShape?: bool} adjusts a picture fill; a group also formats its members",
+            "{color? | none?: true | background?: true (the slide background shows through) | gradient?: {stops: [[pos, color]], angle?, kind?: linear|radial} | picture?: base64 | pattern?: {preset, fg, bg} | transparency?: 0..1 | reset?: true, ids?}; pictureProps?: {tile?: bool, offsetX?, offsetY?: pt, scaleX?, scaleY?: 0..10, align?: tl|t|tr|l|ctr|r|bl|b|br, mirror?: none|x|y|xy, stretch?: [l, t, r, b] fractions, rotateWithShape?: bool} adjusts a picture fill; a group also formats its members",
             has_selection,
             fill
         ),
@@ -561,6 +561,8 @@ fn fill(s: &mut Session, p: &Value) -> Result<Value> {
         Some(None)
     } else if bool_or(p, "none", false) {
         Some(Some(Fill::None))
+    } else if bool_or(p, "background", false) {
+        Some(Some(Fill::Background))
     } else if let Some(c) = color_param(p, "color") {
         Some(Some(Fill::solid(c)))
     } else if let Some(g) = p.get("gradient") {
@@ -584,7 +586,10 @@ fn fill(s: &mut Session, p: &Value) -> Result<Value> {
     let transparency = f64_param(p, "transparency");
     let pic_props = p.get("pictureProps").filter(|v| v.is_object());
     if new_fill.is_none() && transparency.is_none() && pic_props.is_none() {
-        return Err(bad("shape.fill", "give `color`, `none`, `gradient`, `pattern`, `picture`, `pictureProps`, `transparency` or `reset`"));
+        return Err(bad(
+            "shape.fill",
+            "give `color`, `none`, `background`, `gradient`, `pattern`, `picture`, `pictureProps`, `transparency` or `reset`",
+        ));
     }
     // Transparency on an inherited (style) fill needs the effective colour.
     let st = s.doc()?;
@@ -1614,6 +1619,30 @@ mod tests {
             expected.mods.push(ColorTransform::Alpha(50000));
             assert_eq!(s.doc().unwrap().shape(*id).unwrap().fill, Some(Fill::solid(expected)));
         }
+    }
+
+    #[test]
+    fn background_fill_shows_the_slide_background_and_survives_a_save() {
+        let mut s = Session::with_new();
+        s.execute("slide.new", &json!({"layout": "blank"})).unwrap();
+        s.execute("design.background", &json!({"color": "#0000c8"})).unwrap();
+        let id = ShapeId(s.execute("shape.insert", &json!({"preset": "rect", "rect": [100, 100, 200, 100]})).unwrap()["id"].as_u64().unwrap() as u32);
+        let inside = |s: &mut Session| s.execute("slide.colorAt", &json!({"x": 200, "y": 150})).unwrap()["color"].clone();
+        assert_ne!(inside(&mut s), "0000C8", "a new shape takes the theme's fill");
+        s.execute("shape.fill", &json!({"background": true})).unwrap();
+        assert_eq!(s.doc().unwrap().shape(id).unwrap().fill, Some(Fill::Background));
+        assert_eq!(inside(&mut s), "0000C8", "the slide background shows through the shape");
+        s.execute("edit.undo", &json!({})).unwrap();
+        assert_eq!(s.doc().unwrap().shape(id).unwrap().fill, None, "one undo step returns to the theme's fill");
+        s.execute("edit.redo", &json!({})).unwrap();
+        // Transparency changes a solid or picture fill only.
+        s.execute("shape.fill", &json!({"transparency": 0.5})).unwrap();
+        assert_eq!(s.doc().unwrap().shape(id).unwrap().fill, Some(Fill::Background));
+
+        let bytes = deckcraft_pptx::export(&s.doc().unwrap().doc).unwrap();
+        let back = deckcraft_pptx::import(&bytes).unwrap();
+        let filled = back.slides.iter().flat_map(|sl| sl.shapes.iter()).filter(|sh| sh.fill == Some(Fill::Background)).count();
+        assert_eq!(filled, 1, "the shape keeps the background fill after a save and reopen");
     }
 
     fn rotation(s: &Session) -> f64 {

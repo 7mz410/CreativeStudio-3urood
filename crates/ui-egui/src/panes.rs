@@ -456,6 +456,7 @@ fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
                 Some(Fill::Gradient(_)) => "gradient",
                 Some(Fill::Picture(_)) => "picture",
                 Some(Fill::Pattern(_)) => "pattern",
+                Some(Fill::Background) => "background",
                 _ => "auto",
             };
             for (l, k) in [
@@ -464,6 +465,7 @@ fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
                 ("Gradient fill", "gradient"),
                 ("Picture or texture fill", "picture"),
                 ("Pattern fill", "pattern"),
+                ("Slide background fill", "background"),
                 ("Automatic", "auto"),
             ] {
                 if ui.radio(kind == k, l).clicked() {
@@ -477,6 +479,7 @@ fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
                         ),
                         "pattern" => run(app, "shape.fill", json!({"pattern": {"preset": "pct25", "fg": "accent1", "bg": "bg1"}})),
                         "picture" => pick_fill_picture(app),
+                        "background" => run(app, "shape.fill", json!({"background": true})),
                         _ => run(app, "shape.fill", json!({"reset": true})),
                     }
                 }
@@ -1678,6 +1681,27 @@ mod tests {
         label.click();
         h.run_steps(2);
         assert!(alpha(&h).is_some_and(|a| (a - 0.6).abs() < 1e-9), "{:?}", alpha(&h));
+    }
+
+    /// Slide background fill is one of the Fill options. It has no Color button or Transparency
+    /// slider of its own.
+    #[test]
+    fn slide_background_fill_is_a_fill_option() {
+        let mut h = fill_pane(None);
+        let fill = |h: &Harness<'_, SlideApp>| h.state().session.active().unwrap().selected_shapes()[0].fill.clone();
+        let undo = h.state().session.active().unwrap().history.undo.len();
+        h.get_by_label("Slide background fill").click();
+        h.run_steps(3);
+        assert_eq!(fill(&h), Some(Fill::Background));
+        assert_eq!(h.state().session.active().unwrap().history.undo.len(), undo + 1, "one undo step");
+        assert_eq!(h.get_by_label("Slide background fill").accesskit_node().toggled(), Some(egui::accesskit::Toggled::True));
+        assert_eq!(color_buttons(&h), 1, "only the line's Color button");
+        assert_eq!(h.query_all_by_role_and_label(egui::accesskit::Role::Slider, "Transparency").count(), 0);
+        // A shape that already has the background fill shows this option chosen, not Automatic.
+        let h = fill_pane(Some(json!({"background": true})));
+        assert_eq!(h.get_by_label("Slide background fill").accesskit_node().toggled(), Some(egui::accesskit::Toggled::True));
+        let automatic = h.query_all_by_label("Automatic").filter(|n| n.accesskit_node().toggled() == Some(egui::accesskit::Toggled::True)).count();
+        assert_eq!(automatic, 1, "only the line's Automatic is chosen");
     }
 }
 
