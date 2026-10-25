@@ -9,7 +9,6 @@
 pub mod animtimeline;
 pub mod backstage;
 pub mod canvas;
-pub mod studio_mark;
 pub mod control;
 pub mod credits;
 pub mod dialogs;
@@ -31,6 +30,7 @@ pub mod show;
 pub mod sorter;
 pub mod squiggles;
 pub mod status;
+pub mod studio_mark;
 pub mod textures;
 pub mod theme;
 pub mod thumbs;
