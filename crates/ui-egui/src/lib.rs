@@ -614,8 +614,8 @@ pub struct SlideApp {
     pub(crate) notes_buf: (u64, usize, notes::Draft),
     /// Faces borrowed from the font database for text the interface fonts can't draw (#101).
     pub ui_fonts: uifonts::UiFonts,
-    /// Thumbnail pane drag (slide index, current drop index).
-    pub(crate) thumb_drag: Option<(usize, usize)>,
+    /// Slide drag in the thumbnail pane or the Slide Sorter: the dragged slides and the drop gap.
+    pub(crate) thumb_drag: Option<thumbs::SlideDrag>,
     /// Selection pane: folded groups, renaming, drag and drop.
     pub selpane: selpane::State,
     /// Arrange ▸ Align: Align to Slide (`true`) or Align Selected Objects, ticked for that selection.
