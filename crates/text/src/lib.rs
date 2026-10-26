@@ -777,9 +777,7 @@ fn shape_para(ctx: &Ctx, shape: &Shape, body: &TextBody, pi: usize, scale: f64, 
                 Some(c) => c.to_string(),
                 None => map_symbol_bullet(char, props.bullet_font.as_deref()),
             };
-            if !st.face.covers(ch.chars().next().unwrap_or('•')) {
-                st.face = db.face("Inter", "Regular");
-            }
+            bullet_face(db, &mut st, &ch);
             Some((ch, st))
         }
         Some(Bullet::AutoNum { scheme, start_at }) => {
@@ -1419,7 +1417,9 @@ pub fn map_symbol_bullet(c: &str, font: Option<&str>) -> String {
         };
         return m.to_string();
     }
-    if f.contains("wingdings") || f.contains("symbol") || ('\u{f000}'..='\u{f0ff}').contains(&first) {
+    // Only the legacy symbol fonts: "Noto Sans Symbols" and the like are Unicode fonts whose
+    // characters (❑ ❖) are drawn as they are.
+    if f.contains("wingdings") || f == "symbol" || ('\u{f000}'..='\u{f0ff}').contains(&first) {
         let code = (first as u32) & 0xff;
         // Wingdings 2 and 3 put different shapes at the same codes.
         if f.starts_with("wingdings 2") {
