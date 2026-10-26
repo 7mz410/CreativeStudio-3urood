@@ -449,7 +449,20 @@ fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
         _ => {
             // Fill & Line.
             ui.label(egui::RichText::new("Fill").font(theme::bold(13.0)));
+            // A group keeps no slide background fill of its own. It shows Slide background fill
+            // when every shape or text box in it has one.
+            let members_background = sh.fill.is_none() && matches!(sh.kind, ShapeKind::Group { .. }) && {
+                let (mut any, mut all) = (false, true);
+                deckcraft_model::walk(sh.children(), &mut |m, _| {
+                    if matches!(m.kind, ShapeKind::Shape) {
+                        any = true;
+                        all &= m.fill == Some(Fill::Background);
+                    }
+                });
+                any && all
+            };
             let kind = match &sh.fill {
+                None if members_background => "background",
                 None => "auto",
                 Some(Fill::None) => "none",
                 Some(Fill::Solid { .. }) => "solid",
@@ -459,6 +472,14 @@ fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
                 Some(Fill::Background) => "background",
                 _ => "auto",
             };
+            // Only a shape or text box saves a slide background fill. A group offers it when it
+            // holds one.
+            let mut background_ok = false;
+            if let Some(st) = app.session.active() {
+                for s in st.selected_shapes() {
+                    deckcraft_model::walk(std::slice::from_ref(s), &mut |m, _| background_ok |= matches!(m.kind, ShapeKind::Shape));
+                }
+            }
             for (l, k) in [
                 ("No fill", "none"),
                 ("Solid fill", "solid"),
@@ -468,6 +489,9 @@ fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
                 ("Slide background fill", "background"),
                 ("Automatic", "auto"),
             ] {
+                if k == "background" && !background_ok {
+                    continue;
+                }
                 if ui.radio(kind == k, l).clicked() {
                     match k {
                         "none" => run(app, "shape.fill", json!({"none": true})),
@@ -495,7 +519,7 @@ fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
             }
             // `shape.fill {transparency}` changes a solid fill (an automatic one through its
             // effective color) and a picture fill; a gradient has a transparency per stop.
-            let transparency = matches!(sh.fill, None | Some(Fill::Solid { .. } | Fill::Picture(_)));
+            let transparency = !members_background && matches!(sh.fill, None | Some(Fill::Solid { .. } | Fill::Picture(_)));
             ui.horizontal(|ui| {
                 if !transparency {
                     return;
@@ -1702,6 +1726,52 @@ mod tests {
         assert_eq!(h.get_by_label("Slide background fill").accesskit_node().toggled(), Some(egui::accesskit::Toggled::True));
         let automatic = h.query_all_by_label("Automatic").filter(|n| n.accesskit_node().toggled() == Some(egui::accesskit::Toggled::True)).count();
         assert_eq!(automatic, 1, "only the line's Automatic is chosen");
+    }
+
+    /// A picture cannot save a slide background fill, so its Fill options leave it out. A group
+    /// that holds a shape keeps the option.
+    #[test]
+    fn a_picture_has_no_slide_background_fill_option() {
+        let pane = |group: bool| {
+            let mut s = Session::with_new();
+            s.execute("slide.new", &json!({"layout": "blank"})).unwrap();
+            let png = deckcraft_render::Image { width: 2, height: 2, pixels: [255, 0, 0, 255].repeat(4) }.to_png();
+            let pic =
+                s.execute("insert.picture", &json!({"data": deckcraft_engine::cmd::base64_encode(&png), "name": "red.png"})).unwrap()["id"].clone();
+            if group {
+                let shape = s.execute("shape.insert", &json!({"preset": "rect", "rect": [500.0, 40.0, 120.0, 80.0]})).unwrap()["id"].clone();
+                s.execute("edit.select", &json!({"ids": [pic, shape]})).unwrap();
+                s.execute("arrange.group", &json!({})).unwrap();
+                s.execute("shape.fill", &json!({"color": "#ff0000"})).unwrap();
+            }
+            let mut app = SlideApp::new(s, Services::default());
+            app.ui.pane = Some("format".into());
+            app.ui.format_tab = "fill".into();
+            let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).build_ui_state(
+                |ui, app: &mut SlideApp| {
+                    app.logic(ui.ctx());
+                    app.ui(ui);
+                },
+                app,
+            );
+            h.run_steps(3);
+            h
+        };
+        let h = pane(false);
+        assert!(h.query_by_label("Pattern fill").is_some(), "the Fill options are shown");
+        assert!(h.query_by_label("Slide background fill").is_none());
+        let mut h = pane(true);
+        h.get_by_label("Slide background fill").click();
+        h.run_steps(3);
+        let st = h.state().session.active().unwrap();
+        let group = st.selected_shapes()[0];
+        let fills: Vec<_> = group.children().iter().map(|m| m.fill.clone()).collect();
+        assert_eq!(fills[1], Some(Fill::Background), "the group's shape takes the fill");
+        assert!(matches!(fills[0], Some(Fill::Solid { .. })), "the picture keeps its fill: {:?}", fills[0]);
+        assert_eq!(group.fill, None, "the group's own fill is cleared");
+        assert_eq!(h.get_by_label("Slide background fill").accesskit_node().toggled(), Some(egui::accesskit::Toggled::True));
+        assert_eq!(h.query_all_by_role_and_label(egui::accesskit::Role::Slider, "Transparency").count(), 0);
+        assert_eq!(color_buttons(&h), 1, "only the line's Color button");
     }
 }
 

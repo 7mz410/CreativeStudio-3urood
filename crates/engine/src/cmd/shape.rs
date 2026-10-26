@@ -90,7 +90,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Shape Fill",
             ["Shape Format", "Shape Styles"],
             None,
-            "{color? | none?: true | background?: true (the slide background shows through) | gradient?: {stops: [[pos, color]], angle?, kind?: linear|radial} | picture?: base64 | pattern?: {preset, fg, bg} | transparency?: 0..1 | reset?: true, ids?}; pictureProps?: {tile?: bool, offsetX?, offsetY?: pt, scaleX?, scaleY?: 0..10, align?: tl|t|tr|l|ctr|r|bl|b|br, mirror?: none|x|y|xy, stretch?: [l, t, r, b] fractions, rotateWithShape?: bool} adjusts a picture fill; a group also formats its members",
+            "{color? | none?: true | background?: true (the slide background shows through; shapes and text boxes only) | gradient?: {stops: [[pos, color]], angle?, kind?: linear|radial} | picture?: base64 | pattern?: {preset, fg, bg} | transparency?: 0..1 | reset?: true, ids?}; pictureProps?: {tile?: bool, offsetX?, offsetY?: pt, scaleX?, scaleY?: 0..10, align?: tl|t|tr|l|ctr|r|bl|b|br, mirror?: none|x|y|xy, stretch?: [l, t, r, b] fractions, rotateWithShape?: bool} adjusts a picture fill; a group also formats its members",
             has_selection,
             fill
         ),
@@ -612,7 +612,27 @@ fn fill(s: &mut Session, p: &Value) -> Result<Value> {
         }
         fills
     };
+    // Only a shape or text box (`p:sp`) saves a slide background fill (`useBgFill`). Pictures,
+    // connectors, tables and charts keep their fill, and a group's own fill is cleared.
+    let background = matches!(new_fill, Some(Some(Fill::Background)));
+    if background {
+        let mut any = false;
+        for id in targets(s, p)? {
+            if let Some(sh) = st.shape(id) {
+                deckcraft_model::walk(std::slice::from_ref(sh), &mut |sh, _| any |= matches!(sh.kind, deckcraft_model::ShapeKind::Shape));
+            }
+        }
+        if !any {
+            return Err(bad("shape.fill", "slide background fill applies to shapes and text boxes"));
+        }
+    }
     edit_group_appearance(s, p, "shape.fill", |sh| {
+        if background && !matches!(sh.kind, deckcraft_model::ShapeKind::Shape) {
+            if matches!(sh.kind, deckcraft_model::ShapeKind::Group { .. }) {
+                sh.fill = None;
+            }
+            return Ok(());
+        }
         if let Some(f) = &new_fill {
             sh.fill.clone_from(f);
         }
@@ -1642,6 +1662,39 @@ mod tests {
         let bytes = deckcraft_pptx::export(&s.doc().unwrap().doc).unwrap();
         let back = deckcraft_pptx::import(&bytes).unwrap();
         let filled = back.slides.iter().flat_map(|sl| sl.shapes.iter()).filter(|sh| sh.fill == Some(Fill::Background)).count();
+        assert_eq!(filled, 1, "the shape keeps the background fill after a save and reopen");
+    }
+
+    /// A picture cannot save a slide background fill, so `background` leaves its fill alone.
+    #[test]
+    fn background_fill_skips_pictures() {
+        let mut s = Session::with_new();
+        s.execute("slide.new", &json!({"layout": "blank"})).unwrap();
+        let shape = s.execute("shape.insert", &json!({"preset": "rect", "rect": [100, 100, 200, 100]})).unwrap()["id"].as_u64().unwrap();
+        let png = deckcraft_render::Image { width: 2, height: 2, pixels: [255, 0, 0, 255].repeat(4) }.to_png();
+        let pic = s
+            .execute("insert.picture", &json!({"data": crate::cmd::base64_encode(&png), "name": "red.png", "rect": [400, 100, 100, 100]}))
+            .unwrap()["id"]
+            .as_u64()
+            .unwrap();
+        let fill = |s: &Session, id: u64| s.doc().unwrap().shape(ShapeId(id as u32)).unwrap().fill.clone();
+        let err = s.execute("shape.fill", &json!({"background": true, "ids": [pic]})).unwrap_err();
+        assert!(err.to_string().contains("shapes and text boxes"), "{err}");
+        assert_eq!(fill(&s, pic), None);
+
+        s.execute("edit.select", &json!({"ids": [shape, pic]})).unwrap();
+        let group = s.execute("arrange.group", &json!({})).unwrap()["id"].as_u64().unwrap();
+        s.execute("shape.fill", &json!({"color": "#ff0000"})).unwrap();
+        s.execute("shape.fill", &json!({"background": true})).unwrap();
+        assert_eq!(fill(&s, shape), Some(Fill::Background));
+        assert!(matches!(fill(&s, pic), Some(Fill::Solid { .. })), "the picture keeps its fill");
+        assert_eq!(fill(&s, group), None, "the group's own fill is cleared");
+        let bytes = deckcraft_pptx::export(&s.doc().unwrap().doc).unwrap();
+        let back = deckcraft_pptx::import(&bytes).unwrap();
+        let mut filled = 0;
+        for slide in &back.slides {
+            deckcraft_model::walk(&slide.shapes, &mut |sh, _| filled += usize::from(sh.fill == Some(Fill::Background)));
+        }
         assert_eq!(filled, 1, "the shape keeps the background fill after a save and reopen");
     }
 
