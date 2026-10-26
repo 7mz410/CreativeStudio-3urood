@@ -613,7 +613,16 @@ fn fill(s: &mut Session, p: &Value) -> Result<Value> {
         fills
     };
     // Only a shape or text box (`p:sp`) saves a slide background fill (`useBgFill`). Pictures,
-    // connectors, tables and charts keep their fill, and a group's own fill is cleared.
+    // connectors, tables and charts keep their fill, and a group's own fill is cleared unless one
+    // of them is filled with it (`grpFill`).
+    fn group_fill_used(sh: &deckcraft_model::Shape, depth: usize) -> bool {
+        depth <= 64
+            && sh.children().iter().any(|c| match c.kind {
+                deckcraft_model::ShapeKind::Shape => false,
+                deckcraft_model::ShapeKind::Group { .. } => matches!(c.fill, None | Some(Fill::Group)) && group_fill_used(c, depth + 1),
+                _ => c.fill == Some(Fill::Group),
+            })
+    }
     let background = matches!(new_fill, Some(Some(Fill::Background)));
     if background {
         let mut any = false;
@@ -628,7 +637,7 @@ fn fill(s: &mut Session, p: &Value) -> Result<Value> {
     }
     edit_group_appearance(s, p, "shape.fill", |sh| {
         if background && !matches!(sh.kind, deckcraft_model::ShapeKind::Shape) {
-            if matches!(sh.kind, deckcraft_model::ShapeKind::Group { .. }) {
+            if matches!(sh.kind, deckcraft_model::ShapeKind::Group { .. }) && !group_fill_used(sh, 0) {
                 sh.fill = None;
             }
             return Ok(());
@@ -1696,6 +1705,46 @@ mod tests {
             deckcraft_model::walk(&slide.shapes, &mut |sh, _| filled += usize::from(sh.fill == Some(Fill::Background)));
         }
         assert_eq!(filled, 1, "the shape keeps the background fill after a save and reopen");
+    }
+
+    /// A picture filled with its group's fill keeps that fill behind its transparent pixels when
+    /// the group's shapes take the slide background fill.
+    #[test]
+    fn background_fill_keeps_the_group_fill_a_picture_uses() {
+        let mut s = Session::with_new();
+        s.execute("slide.new", &json!({"layout": "blank"})).unwrap();
+        let shape = s.execute("shape.insert", &json!({"preset": "rect", "rect": [100, 100, 200, 100]})).unwrap()["id"].as_u64().unwrap();
+        let png = deckcraft_render::Image { width: 2, height: 2, pixels: [0, 0, 0, 0].repeat(4) }.to_png();
+        let pic = s
+            .execute("insert.picture", &json!({"data": crate::cmd::base64_encode(&png), "name": "clear.png", "rect": [400, 100, 100, 100]}))
+            .unwrap()["id"]
+            .as_u64()
+            .unwrap();
+        s.execute("edit.select", &json!({"ids": [shape, pic]})).unwrap();
+        let group = s.execute("arrange.group", &json!({})).unwrap()["id"].as_u64().unwrap();
+        let red = Some(Fill::solid(ColorRef::rgb(Rgba::rgb(255, 0, 0))));
+        s.edit(|doc, _| {
+            for slide in &mut doc.slides {
+                let slide = std::sync::Arc::make_mut(slide);
+                if let Some(g) = slide.shape_mut(ShapeId(group as u32)) {
+                    g.fill.clone_from(&red);
+                }
+                if let Some(p) = slide.shape_mut(ShapeId(pic as u32)) {
+                    p.fill = Some(Fill::Group);
+                }
+            }
+            Ok(())
+        })
+        .unwrap();
+        let behind = |s: &mut Session| s.execute("slide.colorAt", &json!({"x": 450, "y": 150})).unwrap()["color"].clone();
+        assert_eq!(behind(&mut s), "FF0000", "the group's fill shows through the picture");
+        s.execute("edit.select", &json!({"ids": [group]})).unwrap();
+        s.execute("shape.fill", &json!({"background": true})).unwrap();
+        let fill = |s: &Session, id: u64| s.doc().unwrap().shape(ShapeId(id as u32)).unwrap().fill.clone();
+        assert_eq!(fill(&s, shape), Some(Fill::Background));
+        assert_eq!(fill(&s, pic), Some(Fill::Group));
+        assert_eq!(fill(&s, group), red, "the group keeps the fill its picture uses");
+        assert_eq!(behind(&mut s), "FF0000", "the group's fill still shows through the picture");
     }
 
     fn rotation(s: &Session) -> f64 {
