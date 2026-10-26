@@ -29,7 +29,7 @@ RULES = [
     ('crates/engine/src/links.rs', 'pub const GITHUB: &str = "https://github.com/storytold/deckcraft";', f'pub const GITHUB: &str = "{REPO}";'),
     ('crates/engine/src/links.rs', 'pub const ISSUES: &str = "https://github.com/storytold/deckcraft/issues";', f'pub const ISSUES: &str = "{REPO}/issues";'),
     # The mark: the 3urood star (studio_mark.rs, generated from docs/studio/3urood.svg).
-    ('crates/ui-egui/Cargo.toml', 'egui = { workspace = true }\n', 'egui = { workspace = true }\nvello_cpu = { workspace = true }\n', 'vello_cpu'),
+    ('crates/ui-egui/Cargo.toml', 'egui = { workspace = true, features = ["default_fonts", "monochrome_emoji_fonts"] }\n', 'egui = { workspace = true, features = ["default_fonts", "monochrome_emoji_fonts"] }\nvello_cpu = { workspace = true }\n', 'vello_cpu'),
     ('crates/ui-egui/src/lib.rs', 'pub mod canvas;\n', 'pub mod canvas;\npub mod studio_mark;\n', 'pub mod studio_mark;'),
     ('crates/ui-egui/src/dialogs.rs', """    let orange = Color32::from_rgb(0xF2, 0x6B, 0x1D);
     let deep = Color32::from_rgb(0xC2, 0x4E, 0x14);
