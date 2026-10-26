@@ -5646,3 +5646,20 @@ fn invalid_ids_array_never_falls_back_to_the_selection() {
         assert!(s.doc().unwrap().shape(deckcraft_model::ShapeId(a as u32)).is_some(), "shape deleted for {ids}");
     }
 }
+
+#[test]
+fn invalid_slide_index_never_falls_back_to_the_selection_in_export_commands() {
+    let mut s = session();
+    let dir = std::env::temp_dir().join(format!("deckcraft-badslide-{}", std::process::id()));
+    let path = dir.join("a.png");
+    for slide in [json!(-1), json!(1.5), json!("two")] {
+        let r = s.execute("file.export", &json!({"path": path.to_string_lossy(), "slide": slide, "scale": 0.1}));
+        assert!(matches!(r, Err(crate::EngineError::BadParams { .. })), "export slide {slide} gave {r:?}");
+        assert!(!path.exists(), "export wrote a file for {slide}");
+        let r = s.execute("file.render", &json!({"slide": slide, "scale": 0.1}));
+        assert!(matches!(r, Err(crate::EngineError::BadParams { .. })), "render slide {slide} gave {r:?}");
+        let r = s.execute("slide.colorAt", &json!({"slide": slide, "x": 1, "y": 1, "scale": 0.1}));
+        assert!(matches!(r, Err(crate::EngineError::BadParams { .. })), "colorAt slide {slide} gave {r:?}");
+    }
+    let _ = std::fs::remove_dir_all(&dir);
+}

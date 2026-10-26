@@ -7,7 +7,7 @@ use deckcraft_media::MediaInfo;
 use deckcraft_model::{MediaId, MediaItem, Presentation, Shape, ShapeKind, defaults};
 use serde_json::{Value, json};
 
-use super::{CommandSpec, always, bad, base64_decode, base64_encode, bool_or, cmd, f64_or, has_doc, ok, str_param, usize_param};
+use super::{CommandSpec, always, bad, base64_decode, base64_encode, bool_or, cmd, f64_or, has_doc, ok, opt_usize_param, str_param, usize_param};
 use crate::{DocState, EngineError, Result, Session};
 
 pub fn specs() -> Vec<CommandSpec> {
@@ -536,7 +536,7 @@ fn picture_bytes(img: &deckcraft_render::Image, format: &str, scale: f64) -> Vec
 
 fn render(s: &mut Session, p: &Value) -> Result<Value> {
     let st = s.doc()?;
-    let i = usize_param(p, "slide").unwrap_or(st.selection.slide);
+    let i = opt_usize_param(p, "slide", "file.render")?.unwrap_or(st.selection.slide);
     if i >= st.doc.slides.len() {
         return Err(bad("file.render", format!("no slide {i}")));
     }
@@ -547,7 +547,7 @@ fn render(s: &mut Session, p: &Value) -> Result<Value> {
 /// The colour the slide is drawn with at one point: what the Eyedropper takes.
 fn color_at(s: &mut Session, p: &Value) -> Result<Value> {
     let st = s.doc()?;
-    let i = usize_param(p, "slide").unwrap_or(st.selection.slide);
+    let i = opt_usize_param(p, "slide", "slide.colorAt")?.unwrap_or(st.selection.slide);
     if i >= st.doc.slides.len() {
         return Err(bad("slide.colorAt", format!("no slide {i}")));
     }
@@ -578,7 +578,7 @@ fn export(s: &mut Session, p: &Value) -> Result<Value> {
     }
     match format.as_str() {
         "png" | "jpeg" | "jpg" => {
-            let slides: Vec<usize> = match usize_param(p, "slide") {
+            let slides: Vec<usize> = match opt_usize_param(p, "slide", "file.export")? {
                 Some(i) => vec![i],
                 None if bool_or(p, "all", false) => (0..st.doc.slides.len()).collect(),
                 None => vec![st.selection.slide],
