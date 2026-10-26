@@ -1256,6 +1256,43 @@ fn symbol_font_characters_draw_in_the_sym_font() {
 }
 
 #[test]
+fn a_space_after_a_symbol_font_character_keeps_the_runs_font() {
+    // PowerPoint stores "→ Only" typed in a Wingdings run as U+F0E0, a space and the words, all
+    // with `<a:sym typeface="Wingdings"/>`: only the symbol code draws in Wingdings. The space
+    // stayed in the arrow's face, and Wingdings' space is about four times as wide. Skipped
+    // without Wingdings.
+    let db = FontDb::global();
+    if !db.has_family("Wingdings") || !covers_symbol(&db.face("Wingdings", "Regular"), '\u{F0E0}') {
+        eprintln!("skipped: no installed Wingdings face draws U+F0E0");
+        return;
+    }
+    let laid = |split: bool| {
+        let (p, mut sh) = setup("\u{F0E0} Only", 900.0, 300.0);
+        let para = &mut sh.text.as_mut().unwrap().paragraphs[0];
+        para.props.bullet = Some(Bullet::None);
+        para.runs[0].props.font = Some("Arial".into());
+        para.runs[0].props.font_sym = Some("Wingdings".into());
+        if split {
+            // The arrow alone carries the symbol font.
+            let mut rest = para.runs[0].clone();
+            rest.text = " Only".into();
+            rest.props.font_sym = None;
+            para.runs[0].text = "\u{F0E0}".into();
+            para.runs.push(rest);
+        }
+        lay(&p, &sh, 900.0, 300.0)
+    };
+    let whole = laid(false);
+    let families: Vec<(String, (usize, usize))> = whole.runs.iter().map(|r| (r.face.family.clone(), r.chars)).collect();
+    assert!(families.iter().any(|(f, c)| f.eq_ignore_ascii_case("Wingdings") && c.0 == 0), "the arrow: {families:?}");
+    let in_wingdings = |i: usize| families.iter().any(|(f, c)| (c.0..c.1).contains(&i) && f.eq_ignore_ascii_case("Wingdings"));
+    assert!(!in_wingdings(1) && !in_wingdings(2), "the space and words: {families:?}");
+    // "Only" starts where it does when the arrow alone is in Wingdings.
+    let o = |l: &TextLayout| l.lines[0].caret_x[2];
+    assert!((o(&whole) - o(&laid(true))).abs() < 0.01, "{} vs {}", o(&whole), o(&laid(true)));
+}
+
+#[test]
 fn small_capitals_draw_smaller_than_the_capitals_beside_them() {
     let (p, mut sh) = setup("HxHx", 2000.0, 300.0);
     let para = &mut sh.text.as_mut().unwrap().paragraphs[0];
