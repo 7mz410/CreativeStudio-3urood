@@ -658,14 +658,10 @@ fn fx_slider(
         } else {
             ui.data_mut(|d| d.remove::<f64>(sid));
         }
-        // The slider rounds to whole numbers, which reads as a change for a value such as 55.000000000000007;
-        // acting on it would re-add an effect the pane just cleared.
-        let moved = v.round() != value.round();
-        if r.drag_stopped() || r.lost_focus() || (r.changed() && !r.dragged()) {
+        // `changed()` alone also fires when the slider only rounds the shown value (55.000000000000007 to 55),
+        // which re-added a reflection the pane had just cleared; a keyboard edit has focus.
+        if r.drag_stopped() || r.lost_focus() || (r.changed() && !r.dragged() && r.has_focus()) {
             ui.data_mut(|d| d.remove::<f64>(sid));
-            if !moved {
-                return;
-            }
             run(app, "shape.effects", json!({key: {prop: v * scale}}));
         }
     });
