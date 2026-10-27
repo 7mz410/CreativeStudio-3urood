@@ -65,7 +65,7 @@ In, Wipe, Zoom, Float In, Grow/Shrink, Pulse, Spin, motion lines): weighted, ~85
 |---|---|---|
 | Start On Click / With Previous / After Previous, duration, delay | yes | yes |
 | Effect Options (direction, sequence by paragraph) | yes | yes |
-| Effect dialog: sound, after-animation dim/hide, animate text by word/letter, smooth start/end, bounce end, repeat, rewind | yes | partly; repeat and bounce end round-trip; rewind lost on PPTX save (#77) |
+| Effect dialog: sound, after-animation dim/hide, animate text by word/letter, smooth start/end, bounce end, repeat, rewind | yes | partly; repeat, bounce end and rewind round-trip (#77) |
 | By-paragraph text builds, sub-bullets follow parents | yes | yes; builds edited in PowerPoint (own start per paragraph, other effects in between, by 2nd-level paragraphs) import as one effect per paragraph and keep their clicks (#844) |
 | Triggers (on click of a shape) | yes | yes; played in the show: a step per click, the sequence starts over after its last step, a click completes a playing step. Separate click steps, mixed starts and paragraph builds survive PPTX save (`trigger_steps.rs`) |
 | Triggers on a media bookmark | yes | no |
@@ -84,9 +84,8 @@ In, Wipe, Zoom, Float In, Grow/Shrink, Pulse, Spin, motion lines): weighted, ~85
 |---|---|
 | Effect dialog depth | 3–5 |
 | The remaining ~126 effects (most are parameter variations of existing ones) | 3–6 |
-| Rewind and other effect options on round trip (#77) | 1–2 |
 | Transition sounds: the rest of PowerPoint's built-in list (Applause, Arrow, Bomb…) | 1 |
-| Morph across pictures, `!!` names, align once per transition (#67) | 2–4 |
+| Morph across pictures, `!!` names | 2–4 |
 | Cloth, paper and particle transitions as real meshes (Curtains, Peel Off, Page Curl, Airplane, Origami, Vortex, Shred, Honeycomb) | 4–8 |
 | **Total** | **~14–26** (the Transitions and Animations rows of the feature table; part of the Features dimension's 140–240 h) |
 
