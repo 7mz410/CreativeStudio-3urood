@@ -65,7 +65,7 @@ In, Wipe, Zoom, Float In, Grow/Shrink, Pulse, Spin, motion lines): weighted, ~85
 |---|---|---|
 | Start On Click / With Previous / After Previous, duration, delay | yes | yes |
 | Effect Options (direction, sequence by paragraph) | yes | yes |
-| Effect dialog: sound, after-animation dim/hide, animate text by word/letter, smooth start/end, bounce end, repeat, rewind | yes | partly; repeat, bounce end and rewind round-trip (#77) |
+| Effect dialog: sound, after-animation dim/hide, animate text by word/letter, smooth start/end, bounce end, repeat, rewind | yes | partly; repeat, bounce end and rewind round-trip |
 | By-paragraph text builds, sub-bullets follow parents | yes | yes; builds edited in PowerPoint (own start per paragraph, other effects in between, by 2nd-level paragraphs) import as one effect per paragraph and keep their clicks (#844) |
 | Triggers (on click of a shape) | yes | yes; played in the show: a step per click, the sequence starts over after its last step, a click completes a playing step. Separate click steps, mixed starts and paragraph builds survive PPTX save (`trigger_steps.rs`) |
 | Triggers on a media bookmark | yes | no |

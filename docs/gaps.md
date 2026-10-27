@@ -98,7 +98,7 @@ Detail in [file-format-parity.md](file-format-parity.md).
   what breaks. **Beta blocker.**
 
 ### Round trip loses media playback options (#74)
-- **Evidence:** issue #74 (filed 2026-10-10 by an automated reviewer) is open: media playback options aren't written back. Animation rewind is (#77, PR #83 merged). Comment threads left with #70: the writer now emits
+- **Evidence:** issue #74 (filed 2026-10-10 by an automated reviewer) is open: media playback options aren't written back. Animation rewind (#77) is fixed (PR #83 merged). Comment threads left with #70: the writer now emits
   the `p188` modern part next to the legacy one.
 - **Impact:** a deck opened and saved silently loses show behaviour.
 - **Estimate:** 2–4 h. **Beta blocker.**

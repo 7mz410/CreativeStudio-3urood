@@ -12,7 +12,7 @@ number.
 | Number | Value | Kind |
 |---|---|---|
 | **Feature breadth** (weighted checklist) | **84%** over 191 features (P0 92%, P1 82%, P2 55%) | **measured**: `cargo xtask parity` formula over [parity-checklist.md](parity-checklist.md); rows re-scored by the 2026-10-14 community PR wave |
-| Menu-bar coverage | **59%** (128 of 217 app-specific PowerPoint menu items have a DeckCraft command or UI label of the same name) | **measured** (heuristic lower bound): script matching the 2026-10-07 PowerPoint menu dump against the 226 engine command labels of the d556ff9 snapshot (not re-measured since; the registry is 323 now) and the UI's strings; excludes the app, Window and Help menus and the subtitle language lists |
+| Menu-bar coverage | **59%** (128 of 217 app-specific PowerPoint menu items have a DeckCraft command or UI label of the same name) | **measured** (heuristic lower bound): script matching the 2026-10-07 PowerPoint menu dump against the 226 engine command labels of the d556ff9 snapshot (not re-measured since; the registry is 328 now) and the UI's strings; excludes the app, Window and Help menus and the subtitle language lists |
 | **Ready for real work** | **~55%** | **estimated**: weighted dimension table below (was ~56% until the features row was recomputed from written area weights) |
 | **Mainstream practitioner** | **~53%** | **estimated**: [method below](#mainstream-practitioner-and-essentials-user) |
 | **Essentials user** | **~62%** | **estimated**: [method below](#mainstream-practitioner-and-essentials-user) |
@@ -65,12 +65,12 @@ The weights are what those users actually depend on, written down so the total c
 | Dimension | Weight | Ready | Hours to full | Doc | Evidence |
 |---|---:|---:|---|---|---|
 | Features (breadth × depth) | 30% | ~62% | 140–240 | [parity-checklist.md](parity-checklist.md), [animation-parity.md](animation-parity.md), [slideshow-parity.md](slideshow-parity.md) | Breadth 84% measured. Depth lags: partial rows remain, and users found depth bugs in rows scored done within two days (#53, #60, #69, #70, #74, #77, #78) |
-| File formats | 20% | ~58% | 60–110 | [file-format-parity.md](file-format-parity.md) | PPTX reads and writes every main part and keeps unknown objects; files open in PowerPoint without repair. But it has never met a corpus of real decks, EMF/WMF/SVG pictures don't decode, comments/media/rewind settings are lost on round trip, and there is no `.ppt`, `.pptm`, `.odp`, video or GIF export |
+| File formats | 20% | ~58% | 60–110 | [file-format-parity.md](file-format-parity.md) | PPTX reads and writes every main part and keeps unknown objects; files open in PowerPoint without repair. But it has never met a corpus of real decks, EMF/WMF/SVG pictures don't decode, comments and media settings are lost on round trip, and there is no `.ppt`, `.pptm`, `.odp`, video or GIF export |
 | UI/UX fidelity | 15% | ~60% | 30–50 | [ui-parity.md](ui-parity.md) | All 10 ribbon tabs and the contextual tabs exist; Format Shape pane, Animation Pane, dialogs and menus are thinner than PowerPoint's; no native macOS menu bar; user reports #17, #71, #73, #76 |
 | Stability | 10% | ~60% | 10–20 | [gaps.md](gaps.md) | Never-crash rules, a panic guard round every command, PPTX fuzz/malformed tests. But startup crashes on some Windows GPUs (#40, #59) and Close discards edits without asking (#60) |
 | Performance | 5% | ~55% | 10–20 | [hardware-parity.md](hardware-parity.md) | Unmeasured against PowerPoint. Slides rasterize on the CPU (`vello_cpu`); Morph aligns outlines once per transition (#67) |
 | Hardware | 5% | ~40% | 25–45 | [hardware-parity.md](hardware-parity.md) | GPU-composited window (wgpu), but CPU slide raster, software-only video decode, presenter view not placed on the second display, no pen tilt, no pinch zoom |
-| Platforms | 5% | ~80% | 5–10 | [ROADMAP.md](../ROADMAP.md) | Ahead in reach: macOS, Windows x64/x86/arm64, Linux (5 formats), FreeBSD and the web, all from one release workflow. Held back by the Windows GPU crashes and Linux/Windows clipboard gaps |
+| Platforms | 5% | ~80% | 5–10 | [ROADMAP.md](../ROADMAP.md) | Ahead in reach: macOS, Windows x64/x86/arm64, Linux (5 formats), FreeBSD and the web, all from one release workflow. Held back by the Windows GPU crashes and the Windows image-paste gap (#1414; Linux not re-checked) |
 | Localization | 5% | ~8% | 55–90 + native review | [localization-parity.md](localization-parity.md) | English only; no string catalog. PowerPoint for Mac ships 26 languages. Bidi and Arabic shaping in slide text exist |
 | Ecosystem (templates, add-ins) | 3% | ~25% | 10–20 | [gaps.md](gaps.md) | 8 original themes and 6 original starter decks; PowerPoint's large template gallery remains; no add-ins or VBA (out of scope by policy) |
 | AI features | 2% | ~10% | 20–40 (owner decision on models) | [gaps.md](gaps.md) | No Designer, Copilot, Speaker Coach, live subtitles or Translate (all Microsoft cloud services). Agents drive every command over MCP instead |
@@ -251,7 +251,7 @@ Carried from the 2026-10-07 ROADMAP status and updated with what has landed sinc
 - **Files:** `.deckcraft` (zip + JSON), PPTX import/export (also opens `.potx`/`.ppsx`), PDF
   export (slides, notes, handouts 1–9 per page, text layer, links, bookmarks), PNG/JPEG, outline
   text, AutoRecover.
-- **Automation:** 323 engine commands (`cmd!` registrations in `crates/engine/src/cmd/*`), every
+- **Automation:** 328 engine commands (`cmd!` registrations in `crates/engine/src/cmd/*`), every
   one reachable from `deckcraft-cli`, the JSON control channel and MCP. The menu-bar measurement
   and the d556ff9 snapshot still count 226.
 - **Platforms:** signed releases for macOS (universal), Windows x64/x86/arm64, Linux
