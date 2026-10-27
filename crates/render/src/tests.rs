@@ -2951,3 +2951,59 @@ fn pie_data_labels_take_the_chart_text_colour_when_it_has_one() {
     assert!(count(&coloured, &red) > 30, "the labels take the chart's red: {} red pixels", count(&coloured, &red));
     assert!(count(&plain, &white) > count(&coloured, &white), "the labels were white before");
 }
+
+/// #1165: an ellipse sized at the EMU limit, crossing the slide, made vello's flattener allocate a
+/// buffer from its on-screen length and abort. It is skipped; the rest of the slide still draws.
+#[test]
+fn a_shape_far_larger_than_any_screen_is_skipped_not_flattened() {
+    let huge = Shape {
+        id: ShapeId(501),
+        geom: Geom::preset("ellipse"),
+        xfrm: Some(Xfrm::new(-5e17, -5e17, 1e18, 1e18)),
+        style: Some(ShapeStyle::accent(deckcraft_color::SchemeSlot::Accent2)),
+        ..Default::default()
+    };
+    let normal = Shape {
+        id: ShapeId(502),
+        xfrm: Some(Xfrm::new(100.0, 100.0, 200.0, 100.0)),
+        style: Some(ShapeStyle::accent(deckcraft_color::SchemeSlot::Accent1)),
+        ..Default::default()
+    };
+    let p = deck_with(vec![huge, normal]);
+    let img = render_slide(&p, 0, &RenderOpts { scale: 1.0, ..Default::default() });
+    let accent = p.masters[0].theme.colors.get(deckcraft_color::SchemeSlot::Accent1);
+    let px = img.pixel(200, 150);
+    assert!((px[0] as i32 - accent.r as i32).abs() <= 2, "{px:?} vs {accent:?}");
+    assert_eq!(img.pixel(50, 50), [255, 255, 255, 255], "the huge ellipse is not drawn");
+}
+
+/// #1165: a path with a NaN point is not drawn, even when the shape's frame is finite and small
+/// (a bounding box, or a union with the frame, would hide the NaN).
+#[test]
+fn a_shape_whose_outline_is_not_finite_is_not_drawable() {
+    let geo = |pts: &[(f64, f64)]| {
+        let mut path = kurbo::BezPath::new();
+        path.move_to(pts[0]);
+        for p in &pts[1..] {
+            path.line_to(*p);
+        }
+        deckcraft_geom::preset::Geometry {
+            paths: vec![deckcraft_geom::preset::SubPath { path, fill: deckcraft_geom::preset::FillMode::Norm, stroke: true, even_odd: false }],
+            text_rect: kurbo::Rect::ZERO,
+            handles: vec![],
+            sites: vec![],
+        }
+    };
+    let m = kurbo::Affine::IDENTITY;
+    assert!(crate::geometry::drawable(&geo(&[(0.0, 0.0), (100.0, 50.0)]), m, 100.0, 50.0));
+    assert!(!crate::geometry::drawable(&geo(&[(0.0, 0.0), (f64::NAN, 50.0)]), m, 100.0, 50.0));
+    assert!(!crate::geometry::drawable(&geo(&[(0.0, 0.0), (f64::INFINITY, 50.0)]), m, 100.0, 50.0));
+    assert!(!crate::geometry::drawable(&geo(&[(0.0, 0.0), (1e18, 50.0)]), m, 100.0, 50.0));
+    // A quadratic whose extremum overflows kurbo's bounding box: its control point still counts.
+    let mut path = kurbo::BezPath::new();
+    path.move_to((0.0, 0.0));
+    path.quad_to((1e308, 0.0), (0.0, 0.0));
+    let mut quad = geo(&[(0.0, 0.0), (1.0, 1.0)]);
+    quad.paths[0].path = path;
+    assert!(!crate::geometry::drawable(&quad, m, 100.0, 50.0));
+}

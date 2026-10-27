@@ -1,4 +1,6 @@
-use super::geometry::{Caster, blur, border_outside, camera_turn, color, fill_opacity, outside_line, scale_of, shadow_local, shape_geometry};
+use super::geometry::{
+    Caster, blur, border_outside, camera_turn, color, drawable, fill_opacity, outside_line, scale_of, shadow_local, shape_geometry,
+};
 use super::opts::{RenderOpts, ShapeState, SlideFields};
 use super::raster::Image;
 use super::slide::{SlidePart, needs_filters, output_size};
@@ -542,6 +544,10 @@ impl Renderer {
             None => (self.scaled_geometry(s, m, depth, w, h), Vec::new()),
         };
         let fade = |i: usize| fades.get(i).copied().unwrap_or(deckcraft_geom::morph::Fade { fill: 1.0, stroke: 1.0 });
+        if !drawable(&geo, m, w, h) {
+            log::warn!("render: shape {} skipped: its outline is not finite or far larger than any screen", s.id.0);
+            return;
+        }
         let (fill, fill_ph) = resolve::fill(rctx, s);
         let (line, line_ph) = resolve::line(rctx, s);
         let (effects, fx_ph) = resolve::effects(rctx, s);
