@@ -44,6 +44,8 @@ pub struct Show {
     /// Play every step automatically (animation preview).
     pub autoplay: bool,
     pub rehearse: bool,
+    /// Set Up Slide Show ▸ Keep mouse cursor visible: a still pointer is not hidden (#1445).
+    pub keep_cursor: bool,
     timeline: Option<(usize, Timeline)>,
     step_start: f64,
     slide_start: f64,
@@ -206,6 +208,7 @@ impl Show {
             preview_only: false,
             autoplay: false,
             rehearse: false,
+            keep_cursor: false,
             timeline: None,
             step_start: 0.0,
             slide_start: 0.0,
@@ -360,6 +363,12 @@ impl Show {
     /// True while the pointer moved in the last 2.5 s; the media controls and GIF button hide after that.
     fn pointer_awake(&self, now: f64) -> bool {
         now - self.last_move < 2.5
+    }
+
+    /// Whether a still pointer is hidden: after 2.5 s in a full-screen show, unless Keep mouse
+    /// cursor visible is on. Reading View always keeps it.
+    fn hides_idle_cursor(&self, now: f64) -> bool {
+        !self.pointer_awake(now) && !self.reading && !self.keep_cursor
     }
 
     /// Pen and laser are different pointers: turning one on puts the other away.

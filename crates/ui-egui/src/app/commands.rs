@@ -163,6 +163,12 @@ impl SlideApp {
                 }
             }
             "show.presenter" => self.ui.presenter_view = self.flag(p, self.ui.presenter_view),
+            "show.keepCursor" => {
+                self.ui.show_keep_cursor = self.flag(p, self.ui.show_keep_cursor);
+                if let Some(s) = self.show.as_mut() {
+                    s.keep_cursor = self.ui.show_keep_cursor;
+                }
+            }
             "show.end" => {
                 self.show = None;
                 self.media.stop_owned(media::Owner::Show);
