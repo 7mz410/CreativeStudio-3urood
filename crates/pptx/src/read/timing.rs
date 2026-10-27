@@ -1,7 +1,7 @@
 //! Slide transitions (`p:transition`) and animations (`p:timing`).
 
 use deckcraft_model::anim::{AnimClass, AnimStart, Animation, BuildRole, TextBuild, Transition, build_filled, paragraph_build_roles};
-use deckcraft_model::{Shape, TextBody, find_shape};
+use deckcraft_model::{Shape, ShapeKind, TextBody, find_shape, find_shape_mut};
 
 use super::shapes::IdCtx;
 use super::{Imp, Part, dml};
@@ -92,6 +92,35 @@ fn max_dur(e: &El, depth: usize) -> Option<u32> {
         }
     }
     best
+}
+
+/// Volume, mute, Loop until Stopped, Hide While Not Playing and Play Full Screen live in the timing tree
+/// (`p:video`/`p:audio` > `p:cMediaNode`), not on the picture: copy them onto the target's `MediaClip`.
+pub fn media_settings(timing: &El, ctx: &IdCtx, shapes: &mut [Shape]) {
+    let mut nodes = vec![];
+    for tag in ["video", "audio"] {
+        timing.find_all(tag, &mut nodes);
+    }
+    for node in nodes.into_iter().take(10_000) {
+        let Some(cm) = node.child("cMediaNode") else { continue };
+        let Some(id) = cm.path(&["tgtEl", "spTgt"]).and_then(|t| t.u32("spid")).and_then(|f| ctx.lookup(f)) else { continue };
+        let Some(ShapeKind::Media(clip)) = find_shape_mut(shapes, id).map(|s| &mut s.kind) else { continue };
+        if let Some(v) = cm.attr("vol").and_then(|v| v.trim().parse::<f64>().ok()).filter(|v| v.is_finite()) {
+            clip.volume = (v / 100_000.0).clamp(0.0, 1.0);
+        }
+        if cm.bool("mute") == Some(true) {
+            clip.volume = 0.0;
+        }
+        if cm.bool("showWhenStopped") == Some(false) {
+            clip.hide_while_not_playing = true;
+        }
+        if cm.child("cTn").and_then(|c| c.attr("repeatCount")) == Some("indefinite") {
+            clip.loop_play = true;
+        }
+        if node.bool("fullScrn") == Some(true) {
+            clip.full_screen = true;
+        }
+    }
 }
 
 /// Flatten the timing tree into the Animation Pane list.
