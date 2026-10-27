@@ -397,6 +397,12 @@ pub(super) fn effects(s: &mut Session, p: &Value) -> Result<Value> {
             if let Some(d) = num(v, "dir") {
                 x.dir = d.rem_euclid(360.0);
             }
+            // PowerPoint's Size: 0–200%, both axes; a zero scale would collapse the shadow's matrix.
+            if let Some(z) = num(v, "size") {
+                let z = z.clamp(0.01, 2.0);
+                x.sx = z;
+                x.sy = z;
+            }
             *slot = Some(x);
         }
         if let Some(v) = &glow_props {

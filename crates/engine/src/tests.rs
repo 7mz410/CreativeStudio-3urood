@@ -2320,6 +2320,15 @@ fn shape_effects_props_adjust_shadow_glow_and_reflection() {
     let f = fx(&s);
     assert!(f.outer_shadow.is_none());
     assert_eq!(f.inner_shadow.unwrap().blur, 3.0);
+    // Size scales both axes (PowerPoint's 0–200%); out-of-range values clamp.
+    s.execute("shape.effects", &json!({"shadow": "inner"})).unwrap();
+    s.execute("shape.effects", &json!({"shadowProps": {"size": 1.5}})).unwrap();
+    let sw = fx(&s).inner_shadow.unwrap();
+    assert_eq!((sw.sx, sw.sy), (1.5, 1.5));
+    s.execute("shape.effects", &json!({"shadowProps": {"size": 9}})).unwrap();
+    assert_eq!(fx(&s).inner_shadow.unwrap().sx, 2.0);
+    s.execute("shape.effects", &json!({"shadowProps": {"size": 0}})).unwrap();
+    assert_eq!(fx(&s).inner_shadow.unwrap().sy, 0.01);
     // Glow: size, colour, transparency; size 0 removes it.
     s.execute("shape.effects", &json!({"glowProps": {"radius": 12, "transparency": 0.5}})).unwrap();
     let g = fx(&s).glow.unwrap();
