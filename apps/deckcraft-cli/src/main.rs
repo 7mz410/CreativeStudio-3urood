@@ -7,21 +7,36 @@ mod automation_args;
 mod help;
 
 use std::process::ExitCode;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use deckcraft_engine::Session;
 use serde_json::{Value, json};
 
+static STDOUT_CLOSED: AtomicBool = AtomicBool::new(false);
+
 macro_rules! outln {
     ($($arg:tt)*) => {{
-        use std::io::Write as _;
-        if let Err(e) = writeln!(std::io::stdout(), $($arg)*) {
+        if !STDOUT_CLOSED.load(Ordering::Relaxed) && let Err(e) = stdout_line(format_args!($($arg)*)) {
             if e.kind() == std::io::ErrorKind::BrokenPipe {
-                std::process::exit(0);
+                STDOUT_CLOSED.store(true, Ordering::Relaxed);
+            } else {
+                eprintln!("deckcraft-cli: can't write to stdout: {e}");
+                std::process::exit(1);
             }
-            eprintln!("deckcraft-cli: can't write to stdout: {e}");
-            std::process::exit(1);
         }
     }};
+}
+
+fn stdout_line(args: std::fmt::Arguments<'_>) -> std::io::Result<()> {
+    use std::io::Write as _;
+    #[cfg(unix)]
+    let mut stdout = {
+        use std::os::fd::AsFd as _;
+        std::fs::File::from(std::io::stdout().as_fd().try_clone_to_owned()?)
+    };
+    #[cfg(not(unix))]
+    let mut stdout = std::io::stdout();
+    stdout.write_all(format!("{args}\n").as_bytes())
 }
 
 fn main() -> ExitCode {
