@@ -395,6 +395,10 @@ pub fn parse_slide_range(text: &str, count: usize) -> Result<Vec<usize>> {
             Some((a, b)) => (a.trim(), b.trim()),
             None => (part, part),
         };
+        let digits = |s: &str| !s.is_empty() && s.bytes().all(|c| c.is_ascii_digit());
+        if !digits(a) || !digits(b) {
+            return Err(invalid());
+        }
         let (a, b) = (a.parse::<usize>().map_err(|_| invalid())?, b.parse::<usize>().map_err(|_| invalid())?);
         let (lo, hi) = (a.min(b), a.max(b));
         if lo == 0 || hi > count {
@@ -763,7 +767,14 @@ mod color_at_tests;
 mod tests {
     #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-    use super::write_file;
+    use super::{parse_slide_range, write_file};
+
+    #[test]
+    fn slide_range_rejects_plus_sign() {
+        assert!(parse_slide_range("+2", 3).is_err());
+        assert!(parse_slide_range("+1-+3", 3).is_err());
+        assert_eq!(parse_slide_range("1-3", 3).unwrap(), vec![0, 1, 2]);
+    }
 
     fn scratch(name: &str) -> std::path::PathBuf {
         let dir = std::env::temp_dir().join(format!("deckcraft-write-file-{}-{name}", std::process::id()));
