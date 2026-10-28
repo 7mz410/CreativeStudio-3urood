@@ -1789,11 +1789,13 @@ fn animation_state_skips_layout_and_master_shapes_sharing_a_slide_shape_id() {
     let m = std::sync::Arc::make_mut(&mut p.masters[0]);
     m.shapes.push(bar(100.0));
     m.layouts.iter_mut().find(|l| l.id == lid).expect("layout").shapes.push(bar(400.0));
+    std::sync::Arc::make_mut(&mut p.slides[0]).shapes.push(bar(700.0));
     let hide = |_: ShapeId| ShapeState { visible: false, ..Default::default() };
     let img = render_slide(&p, 0, &RenderOpts { scale: 1.0, state: Some(&hide), ..Default::default() });
     for x in [150, 450] {
         assert_eq!(img.pixel(x, 430)[..3], [200, 0, 0], "the backdrop bar at x={x} stays");
     }
+    assert_ne!(img.pixel(750, 430)[..3], [200, 0, 0], "the slide's own shape with that id is hidden");
 }
 
 #[test]
