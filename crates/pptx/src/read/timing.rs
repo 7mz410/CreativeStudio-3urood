@@ -94,11 +94,11 @@ fn max_dur(e: &El, depth: usize) -> Option<u32> {
     best
 }
 
-/// Does any behaviour time node (`p:cBhvr/p:cTn`) under the effect node `c` carry `autoRev`?
+/// Does every behaviour time node (`p:cBhvr/p:cTn`) under the effect node `c` carry `autoRev`?
 fn behaviour_auto_reverses(c: &El) -> bool {
     let mut behaviours = vec![];
     c.find_all("cBhvr", &mut behaviours);
-    behaviours.iter().any(|b| b.child("cTn").and_then(|t| t.bool("autoRev")).unwrap_or(false))
+    !behaviours.is_empty() && behaviours.iter().all(|b| b.child("cTn").and_then(|t| t.bool("autoRev")).unwrap_or(false))
 }
 
 /// Flatten the timing tree into the Animation Pane list.
