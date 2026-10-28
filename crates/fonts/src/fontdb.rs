@@ -604,12 +604,19 @@ fn fontconfig_dirs(text: &str, data_home: Option<&str>, home: Option<&std::path:
 /// axis settings.
 type Found = (u32, String, String, Vec<([u8; 4], f32)>);
 
+/// Maximum number of faces we enumerate from a single font collection.
+const MAX_COLLECTION_FACES: u32 = 256;
+
+fn capped_face_count(count: u32) -> u32 {
+    count.min(MAX_COLLECTION_FACES)
+}
+
 /// Parse every face in `data` (a font file or collection); a variable font yields one face per
 /// named instance (InDesign lists them as styles).
 fn enumerate_faces(data: &[u8]) -> Vec<Found> {
     let count = match FileRef::new(data) {
         Ok(FileRef::Font(_)) => 1,
-        Ok(FileRef::Collection(c)) => c.len(),
+        Ok(FileRef::Collection(c)) => capped_face_count(c.len()),
         Err(_) => 0,
     };
     let mut out = Vec::new();
@@ -1434,6 +1441,12 @@ mod font_dir_tests {
     use std::path::{Path, PathBuf};
 
     use super::*;
+
+    #[test]
+    fn font_collection_face_count_is_capped() {
+        assert_eq!(capped_face_count(MAX_COLLECTION_FACES), MAX_COLLECTION_FACES);
+        assert_eq!(capped_face_count(MAX_COLLECTION_FACES + 1), MAX_COLLECTION_FACES);
+    }
 
     #[test]
     fn xdg_data_dirs_contribute_their_fonts_folders() {
