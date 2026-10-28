@@ -455,7 +455,7 @@ enum CommandSource {
     File(String),
 }
 
-const MAX_COMMAND_FILE_LINE_BYTES: usize = 1024 * 1024;
+const MAX_COMMAND_FILE_LINE_BYTES: usize = 16 * 1024 * 1024;
 
 fn read_command_file_line(reader: &mut impl std::io::BufRead, line: &mut Vec<u8>) -> std::io::Result<bool> {
     line.clear();

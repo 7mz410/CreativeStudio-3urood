@@ -72,8 +72,9 @@ Each --cmd is one command: COMMAND is a command id, then `=`, then the command's
 JSON object. Quote it for the shell. A command that needs no parameters is just its id.
 
 --cmd-file FILE reads the same commands from a UTF-8 text file, one per line, avoiding shell quoting
-and command-line length limits. Blank lines and full-line # comments are ignored, as is surrounding
-whitespace. CRLF line endings and an optional UTF-8 BOM at the start of the file are accepted.
+and command-line length limits. Each line can be up to 16 MiB, including commands with embedded
+media data. Blank lines and full-line # comments are ignored, as is surrounding whitespace. CRLF
+line endings and an optional UTF-8 BOM at the start of the file are accepted.
 Repeat --cmd-file or mix it with --cmd: commands execute in the order those options appear.
 File errors name the path; line-reading, JSON and command errors also name the line number.
 

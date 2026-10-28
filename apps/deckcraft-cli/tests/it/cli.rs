@@ -146,12 +146,12 @@ fn command_file_read_errors_name_the_path_and_utf8_line() {
 fn command_file_rejects_an_oversized_line_before_running_it() {
     let dir = command_file_dir("line-limit");
     let file = dir.join("commands.txt");
-    let command = format!("slide.new={{\"title\":\"{}\"}}", "x".repeat(1024 * 1024));
+    let command = format!("slide.new={{\"title\":\"{}\"}}", "x".repeat(16 * 1024 * 1024));
     std::fs::write(&file, format!("{command}\nslide.new\n")).unwrap();
 
     let o = cli(&["run", "--print", "--cmd-file", &file.to_string_lossy()]);
     let err = stderr(&o);
-    assert!(err.contains(&format!("{}:1:", file.display())) && err.contains("command line exceeds 1048576 byte limit"), "{err}");
+    assert!(err.contains(&format!("{}:1:", file.display())) && err.contains("command line exceeds 16777216 byte limit"), "{err}");
     assert!(o.stdout.is_empty(), "the oversized command must not run");
     std::fs::remove_dir_all(dir).unwrap();
 }
