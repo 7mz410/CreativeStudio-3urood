@@ -356,7 +356,7 @@ impl Dictionary {
     }
 
     /// Is `word` spelt correctly? Capitalised and upper-case forms of a lower-case word pass.
-    /// Words longer than [`MAX_CHECK_CHARS`] are not checked (they pass).
+    /// Words longer than 100 characters are not checked (they pass).
     pub fn check(&self, word: &str) -> bool {
         // Compound splitting tries every split point, so checking costs O(n²) in the word's
         // length: a 100,000-character "word" took seconds per check under a compounding
