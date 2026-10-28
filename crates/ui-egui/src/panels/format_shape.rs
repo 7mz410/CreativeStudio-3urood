@@ -61,7 +61,7 @@ pub(super) fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
             if let Some(v) = effect_presets::shadow_row(ui, effect_presets::shadow_preset_id(&fx)) {
                 run(app, "shape.effects", json!({"shadow": v}));
             }
-            let shadow = fx.outer_shadow.as_ref().or(fx.inner_shadow.as_ref());
+            let shadow = fx.inner_shadow.as_ref().or(fx.outer_shadow.as_ref());
             if let Some(sw) = shadow {
                 color_button(app, ui, "Color", None, |c| ("shape.effects".into(), json!({"shadowProps": {"color": c.as_ref().map(cref_param)}})));
                 fx_slider(
