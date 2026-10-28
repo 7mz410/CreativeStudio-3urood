@@ -36,10 +36,10 @@ fn reflection_none_clears_after_a_second_preset() {
         h.get_by_label(preset).click();
         h.run_steps(4);
         assert!(has_reflection(&h), "{preset} adds a reflection");
+        h.get_all_by_label("None").last().unwrap().click();
+        h.run_steps(4);
+        assert!(!has_reflection(&h), "None clears the {preset} reflection");
     }
-    h.get_all_by_label("None").last().unwrap().click();
-    h.run_steps(4);
-    assert!(!has_reflection(&h), "None clears the reflection");
 }
 
 #[test]
