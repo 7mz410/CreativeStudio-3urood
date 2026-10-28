@@ -34,7 +34,7 @@ ready** (estimated), **10–16 h** to parity.
 | Laser pointer | yes | yes in the show | Cmd/Ctrl+L and the on-screen button draw the show's laser colour and leave no ink. The presenter window does not move that dot |
 | Subtitles and live captions | yes (cloud speech) | no | AI dimension |
 | Custom shows | yes | yes: Show plays that list in order and does not change Set Up; Set Up Slide Show can keep one for Play from Start | Hidden slides in the list are skipped |
-| Set Up Show: loop until Esc, kiosk (browsed at a kiosk), show without animation/narration, pen colour, slides range | yes | yes, most options | Keep mouse cursor visible (DeckCraft's own, #1445) stops the show hiding a still pointer after 2.5 s, for decks with clickable choices; it is a user preference (`ui.json`, `show.keepCursor`), since PPTX has no place for it |
+| Set Up Show: loop until Esc, kiosk (browsed at a kiosk), show without animation/narration, pen colour, slides range | yes | yes, most options | Keep mouse cursor visible (DeckCraft's own, #1445) stops the show hiding a still pointer after 2.5 s, for decks with clickable choices; it is a user preference (`ui.json`, `showKeepCursor`), since PPTX has no place for it |
 | Use rehearsed timings | yes | yes | |
 
 ## Presenter view
