@@ -53,8 +53,14 @@ fn preset_tiles_set_shadow_glow_and_soft_edges() {
     let fx = effects(&h);
     assert!(fx.outer_shadow.is_none() && fx.inner_shadow.is_none());
 
+    // A radius tile keeps the glow's colour and transparency.
+    h.state_mut().session.execute("shape.effects", &json!({"glowProps": {"color": "accent2", "transparency": 0.35, "radius": 8.0}})).unwrap();
+    h.run_steps(3);
+    let colour = effects(&h).glow.unwrap().color;
     click(&mut h, "18 pt glow");
-    assert_eq!(effects(&h).glow.unwrap().radius, 18.0);
+    let glow = effects(&h).glow.unwrap();
+    assert_eq!(glow.radius, 18.0);
+    assert_eq!(glow.color, colour);
     click(&mut h, "No glow");
     assert!(effects(&h).glow.is_none());
 
