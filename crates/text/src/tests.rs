@@ -192,7 +192,11 @@ fn bullet_in_an_unavailable_unicode_symbol_font_keeps_its_character() {
     let l = lay(&p, &sh, 600.0, 300.0);
     let bullet = l.runs.iter().find(|r| r.chars == (0, 0)).expect("bullet run");
     assert_eq!(bullet.glyphs.len(), 1);
-    assert_ne!(bullet.glyphs[0].0, 0, "the bullet is drawn, not .notdef");
+    // The bullet's face draws ❑ if it has it, else the dot: never .notdef, never another glyph.
+    let drawn = bullet.glyphs[0].0;
+    let square = deckcraft_fonts::first_glyph(&bullet.face, &['\u{2751}']);
+    let dot = deckcraft_fonts::first_glyph(&bullet.face, &['\u{2022}']);
+    assert!(drawn != 0 && (drawn == square || drawn == dot), "drawn glyph {drawn}, ❑ {square}, • {dot}");
 }
 
 #[test]
