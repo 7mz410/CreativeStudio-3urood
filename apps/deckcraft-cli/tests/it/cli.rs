@@ -143,6 +143,20 @@ fn command_file_read_errors_name_the_path_and_utf8_line() {
 }
 
 #[test]
+fn command_file_rejects_an_oversized_line_before_running_it() {
+    let dir = command_file_dir("line-limit");
+    let file = dir.join("commands.txt");
+    let command = format!("slide.new={{\"title\":\"{}\"}}", "x".repeat(1024 * 1024));
+    std::fs::write(&file, format!("{command}\nslide.new\n")).unwrap();
+
+    let o = cli(&["run", "--print", "--cmd-file", &file.to_string_lossy()]);
+    let err = stderr(&o);
+    assert!(err.contains(&format!("{}:1:", file.display())) && err.contains("command line exceeds 1048576 byte limit"), "{err}");
+    assert!(o.stdout.is_empty(), "the oversized command must not run");
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
 fn inline_commands_keep_their_existing_syntax_and_errors() {
     let o = cli(&["run", "--cmd", "slide.new", "--cmd", "slide.new={\"title\":\"Inline = #\"}", "--cmd", "document.inspect", "--print"]);
     let out = stdout(&o);

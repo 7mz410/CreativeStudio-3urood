@@ -455,6 +455,28 @@ enum CommandSource {
     File(String),
 }
 
+const MAX_COMMAND_FILE_LINE_BYTES: usize = 1024 * 1024;
+
+fn read_command_file_line(reader: &mut impl std::io::BufRead, line: &mut Vec<u8>) -> std::io::Result<bool> {
+    line.clear();
+    loop {
+        let available = reader.fill_buf()?;
+        if available.is_empty() {
+            return Ok(!line.is_empty());
+        }
+        let newline = available.iter().position(|byte| *byte == b'\n');
+        let count = newline.unwrap_or(available.len());
+        line.len().checked_add(count).filter(|length| *length <= MAX_COMMAND_FILE_LINE_BYTES).ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::InvalidData, format!("command line exceeds {MAX_COMMAND_FILE_LINE_BYTES} byte limit"))
+        })?;
+        line.extend_from_slice(&available[..count]);
+        reader.consume(count + usize::from(newline.is_some()));
+        if newline.is_some() {
+            return Ok(true);
+        }
+    }
+}
+
 /// The same command syntax and execution path for --cmd and each command-file line.
 fn run_command(s: &mut Session, command: &str, print: bool) -> Result<(), String> {
     let (id, params) = match command.split_once('=') {
@@ -469,13 +491,19 @@ fn run_command(s: &mut Session, command: &str, print: bool) -> Result<(), String
 }
 
 fn run_command_file(s: &mut Session, path: &str, print: bool) -> Result<(), String> {
-    use std::io::{BufRead, BufReader};
+    use std::io::BufReader;
 
     let file = std::fs::File::open(path).map_err(|e| format!("{path}: {e}"))?;
-    for (index, line) in BufReader::new(file).lines().enumerate() {
-        let line_number = index + 1;
-        let line = line.map_err(|e| format!("{path}:{line_number}: {e}"))?;
-        let line = if index == 0 { line.trim_start_matches('\u{feff}') } else { &line };
+    let mut reader = BufReader::new(file);
+    let mut bytes = Vec::new();
+    let mut line_number = 0usize;
+    loop {
+        line_number = line_number.checked_add(1).ok_or_else(|| format!("{path}: too many lines"))?;
+        if !read_command_file_line(&mut reader, &mut bytes).map_err(|e| format!("{path}:{line_number}: {e}"))? {
+            break;
+        }
+        let line = std::str::from_utf8(&bytes).map_err(|e| format!("{path}:{line_number}: invalid UTF-8: {e}"))?;
+        let line = if line_number == 1 { line.trim_start_matches('\u{feff}') } else { line };
         let command = line.trim();
         if command.is_empty() || command.starts_with('#') {
             continue;
