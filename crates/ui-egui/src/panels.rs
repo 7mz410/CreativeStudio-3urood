@@ -380,14 +380,11 @@ mod tests {
             .unwrap();
         let shape = s.execute("shape.insert", &json!({"preset": "rect", "rect": [500.0, 40.0, 120.0, 80.0]})).unwrap()["id"].as_u64().unwrap();
         s.execute("edit.select", &json!({"ids": [pic, shape]})).unwrap();
-        let group = s.execute("arrange.group", &json!({})).unwrap()["id"].as_u64().unwrap();
-        let red = Some(Fill::solid(ColorRef::rgb(deckcraft_color::Rgba::rgb(255, 0, 0))));
+        s.execute("arrange.group", &json!({})).unwrap();
+        s.execute("shape.fill", &json!({"gradient": {"stops": [[0, "#ff0000"], [1, "#0000ff"]]}})).unwrap();
         s.edit(|doc, _| {
             for slide in &mut doc.slides {
                 let slide = std::sync::Arc::make_mut(slide);
-                if let Some(g) = slide.shape_mut(ShapeId(group as u32)) {
-                    g.fill.clone_from(&red);
-                }
                 if let Some(p) = slide.shape_mut(ShapeId(pic as u32)) {
                     p.fill = Some(Fill::Group);
                 }
@@ -408,8 +405,11 @@ mod tests {
         h.run_steps(3);
         h.get_by_label("Slide background fill").click();
         h.run_steps(3);
-        assert_eq!(h.state().session.active().unwrap().selected_shapes()[0].fill, red, "the group keeps the fill its picture uses");
+        let st = h.state().session.active().unwrap();
+        assert!(matches!(st.selected_shapes()[0].fill, Some(Fill::Gradient(_))), "the group keeps the fill its picture uses");
+        assert_eq!(st.shape(ShapeId(shape as u32)).unwrap().fill, Some(Fill::Background));
         assert_eq!(h.get_by_label("Slide background fill").accesskit_node().toggled(), Some(egui::accesskit::Toggled::True));
+        assert!(h.query_by_label("Rotate with shape").is_none(), "no editor for the group's kept gradient");
         assert_eq!(h.query_all_by_role_and_label(egui::accesskit::Role::Slider, "Transparency").count(), 0);
         assert_eq!(color_buttons(&h), 1, "only the line's Color button");
     }

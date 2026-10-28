@@ -372,10 +372,13 @@ pub(super) fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
                     ui.data_mut(|d| d.insert_temp(id, v));
                 }
             });
-            if let Some(Fill::Picture(pf)) = &sh.fill {
+            // A group that keeps a fill for its pictures shows no editor for that fill while its
+            // shapes have the slide background fill.
+            let shown_fill = sh.fill.as_ref().filter(|_| !members_background);
+            if let Some(Fill::Picture(pf)) = shown_fill {
                 picture_fill_options(app, ui, sh.id.0, pf);
             }
-            if let Some(Fill::Gradient(g)) = &sh.fill {
+            if let Some(Fill::Gradient(g)) = shown_fill {
                 let sc = scheme(app);
                 if let Some(ng) = crate::fillui::gradient_editor(ui, "shape-grad", g, &sc) {
                     run(app, "shape.fill", json!({"gradient": crate::fillui::gradient_json(&ng)}));
@@ -386,7 +389,7 @@ pub(super) fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
                     run(app, "shape.fill", json!({"gradient": crate::fillui::gradient_json(&ng)}));
                 }
             }
-            if let Some(Fill::Pattern(pt)) = &sh.fill
+            if let Some(Fill::Pattern(pt)) = shown_fill
                 && let Some(np) = crate::fillui::pattern_editor(ui, pt, &scheme(app))
             {
                 run(app, "shape.fill", json!({"pattern": crate::fillui::pattern_json(&np)}));
