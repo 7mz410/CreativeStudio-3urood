@@ -111,7 +111,7 @@ pub(super) fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
             ui.label(egui::RichText::new("Glow").font(theme::bold(13.0)));
             let radius = fx.glow.as_ref().map_or(0.0, |g| g.radius);
             if let Some(r) = effect_presets::glow_row(ui, radius) {
-                run(app, "shape.effects", json!({"glow": if r > 0.0 { json!(r) } else { Value::Null }}));
+                run(app, "shape.effects", json!({"glowProps": {"radius": r}}));
             }
             fx_slider(app, ui, ("glow", sh.id.0, "r"), "Size", radius, 0.0..=150.0, " pt", "glowProps", "radius", 1.0);
             if let Some(g) = &fx.glow {
