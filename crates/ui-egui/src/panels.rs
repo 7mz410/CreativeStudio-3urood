@@ -367,6 +367,52 @@ mod tests {
         assert_eq!(h.query_all_by_role_and_label(egui::accesskit::Role::Slider, "Transparency").count(), 0);
         assert_eq!(color_buttons(&h), 1, "only the line's Color button");
     }
+
+    /// A group whose picture uses the group's fill keeps that fill, and still shows Slide
+    /// background fill chosen once its shapes have it.
+    #[test]
+    fn a_group_that_keeps_its_fill_shows_slide_background_fill() {
+        let mut s = Session::with_new();
+        s.execute("slide.new", &json!({"layout": "blank"})).unwrap();
+        let png = deckcraft_render::Image { width: 2, height: 2, pixels: [0, 0, 0, 0].repeat(4) }.to_png();
+        let pic = s.execute("insert.picture", &json!({"data": deckcraft_engine::cmd::base64_encode(&png), "name": "clear.png"})).unwrap()["id"]
+            .as_u64()
+            .unwrap();
+        let shape = s.execute("shape.insert", &json!({"preset": "rect", "rect": [500.0, 40.0, 120.0, 80.0]})).unwrap()["id"].as_u64().unwrap();
+        s.execute("edit.select", &json!({"ids": [pic, shape]})).unwrap();
+        let group = s.execute("arrange.group", &json!({})).unwrap()["id"].as_u64().unwrap();
+        let red = Some(Fill::solid(ColorRef::rgb(deckcraft_color::Rgba::rgb(255, 0, 0))));
+        s.edit(|doc, _| {
+            for slide in &mut doc.slides {
+                let slide = std::sync::Arc::make_mut(slide);
+                if let Some(g) = slide.shape_mut(ShapeId(group as u32)) {
+                    g.fill.clone_from(&red);
+                }
+                if let Some(p) = slide.shape_mut(ShapeId(pic as u32)) {
+                    p.fill = Some(Fill::Group);
+                }
+            }
+            Ok(())
+        })
+        .unwrap();
+        let mut app = SlideApp::new(s, Services::default());
+        app.ui.pane = Some("format".into());
+        app.ui.format_tab = "fill".into();
+        let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).build_ui_state(
+            |ui, app: &mut SlideApp| {
+                app.logic(ui.ctx());
+                app.ui(ui);
+            },
+            app,
+        );
+        h.run_steps(3);
+        h.get_by_label("Slide background fill").click();
+        h.run_steps(3);
+        assert_eq!(h.state().session.active().unwrap().selected_shapes()[0].fill, red, "the group keeps the fill its picture uses");
+        assert_eq!(h.get_by_label("Slide background fill").accesskit_node().toggled(), Some(egui::accesskit::Toggled::True));
+        assert_eq!(h.query_all_by_role_and_label(egui::accesskit::Role::Slider, "Transparency").count(), 0);
+        assert_eq!(color_buttons(&h), 1, "only the line's Color button");
+    }
 }
 
 #[cfg(test)]

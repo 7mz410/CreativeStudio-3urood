@@ -134,9 +134,9 @@ fn effects_tab(app: &mut SlideApp, ui: &mut Ui, sh: &deckcraft_model::Shape) {
 }
 
 /// A group keeps no slide background fill of its own. It shows Slide background fill when every
-/// shape or text box in it has one.
+/// shape or text box in it has one, including when the group keeps a fill that a picture in it uses.
 fn members_have_background_fill(sh: &deckcraft_model::Shape) -> bool {
-    if sh.fill.is_some() || !matches!(sh.kind, ShapeKind::Group { .. }) {
+    if !matches!(sh.kind, ShapeKind::Group { .. }) {
         return false;
     }
     let (mut any, mut all) = (false, true);
@@ -298,7 +298,7 @@ pub(super) fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
             ui.label(egui::RichText::new("Fill").font(theme::bold(13.0)));
             let members_background = members_have_background_fill(&sh);
             let kind = match &sh.fill {
-                None if members_background => "background",
+                _ if members_background => "background",
                 None => "auto",
                 Some(Fill::None) => "none",
                 Some(Fill::Solid { .. }) => "solid",
