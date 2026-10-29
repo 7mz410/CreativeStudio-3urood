@@ -27,6 +27,8 @@ use presenter::{NOTES_MAX, NOTES_MIN, NOTES_STEP, format_elapsed, presenter_note
 #[cfg(test)]
 use render::{below_playing_video, next_rect, render_frame, start_prefetch};
 use render::{render_backdrop, render_threads};
+#[cfg(test)]
+use ui::transition_layers;
 pub use ui::ui;
 use zoom::Zoom;
 #[cfg(test)]
@@ -156,6 +158,9 @@ struct Transition {
     kind: String,
     option: String,
     dur: f64,
+    /// Going back: the transition of the slide left behind plays from its end to its start, so
+    /// the old slide takes the new slide's part (#1531).
+    reverse: bool,
 }
 
 /// A copy of the show's clock origins for regressions that must not depend on wall time.
@@ -450,12 +455,6 @@ impl Show {
                 if self.rehearse {
                     self.timings.push((self.timeline.as_ref().map(|t| t.0).unwrap_or(i), now - self.slide_start));
                 }
-                let (kind, option, dur) = doc
-                    .slides
-                    .get(i)
-                    .and_then(|s| s.transition.as_ref())
-                    .map(|t| (t.kind.clone(), t.option.clone(), t.duration_ms as f64 / 1000.0))
-                    .unwrap_or(("none".into(), String::new(), 0.0));
                 // Take the old slide's texture rather than cloning its handle: the new slide is
                 // otherwise rendered into the same texture, and the transition blends the new
                 // slide with itself (#33).
@@ -463,8 +462,20 @@ impl Show {
                 if from != Some(i) {
                     self.last_viewed = from;
                 }
+                // Going back plays the transition the slide left behind came in with, reversed
+                // (#1531); a queued Back that a later step overtook keeps the forward one.
+                let back = self.state.backward && self.state.slide == i && from.is_some_and(|f| f != i);
+                let (kind, option, dur) = doc
+                    .slides
+                    .get(if back { from.unwrap_or(i) } else { i })
+                    .and_then(|s| s.transition.as_ref())
+                    .map(|t| (t.kind.clone(), t.option.clone(), t.duration_ms as f64 / 1000.0))
+                    .unwrap_or(("none".into(), String::new(), 0.0));
+                // Morph needs no reversing: a Morph from the old slide to the new one is the
+                // reversed Morph.
+                let reverse = back && kind != "morph";
                 self.trans = if kind != "none" && dur > 0.0 && !doc.show.without_animation {
-                    Some(Transition { old, from, morph: None, parts: None, start: now, kind, option, dur })
+                    Some(Transition { old, from, morph: None, parts: None, start: now, kind, option, dur, reverse })
                 } else {
                     None
                 };

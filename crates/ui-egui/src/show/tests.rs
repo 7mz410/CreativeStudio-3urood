@@ -444,6 +444,62 @@ fn a_transition_keeps_the_old_slide_in_its_own_texture() {
 }
 
 #[test]
+fn going_back_plays_the_left_slides_transition_reversed() {
+    // #1531: Back from B to A played A's own entrance transition. PowerPoint plays the one B came
+    // in with, backwards.
+    let mut s = deckcraft_engine::Session::with_new();
+    s.execute("slide.new", &json!({})).unwrap();
+    s.execute("transition.set", &json!({"kind": "fade", "index": 0})).unwrap();
+    s.execute("transition.set", &json!({"kind": "push", "index": 1})).unwrap();
+    let doc = s.active().unwrap().doc.clone();
+    let ctx = egui::Context::default();
+    let tex = |slide| {
+        let t = crate::textures::upload(&ctx, "show", egui::ColorImage::filled([1, 1], Color32::RED));
+        Some((Key { slide, step: 0, size: (1, 1), doc: 0, hidden: vec![], gif: 0, plays: vec![] }, t))
+    };
+    let mut show = Show::new(&doc, 0, false, false);
+    show.tex = tex(0);
+    let a = show.state.next(&doc);
+    assert_eq!(a, ShowAction::Slide(1));
+    assert!(show.apply(a, &doc, 0.0));
+    let tr = show.trans.as_ref().expect("B's push plays");
+    assert_eq!((tr.kind.as_str(), tr.reverse), ("push", false));
+
+    show.tex = tex(1);
+    let a = show.state.prev(&doc);
+    assert_eq!(a, ShowAction::Slide(0));
+    assert!(show.apply(a, &doc, 1.0));
+    let tr = show.trans.as_ref().expect("going back plays a transition");
+    assert_eq!((tr.kind.as_str(), tr.reverse, tr.from), ("push", true, Some(1)), "B's push, reversed, not A's fade");
+
+    // Forward again: B's own transition, forward.
+    show.tex = tex(0);
+    let a = show.state.next(&doc);
+    assert!(show.apply(a, &doc, 2.0));
+    let tr = show.trans.as_ref().expect("B's push plays");
+    assert_eq!((tr.kind.as_str(), tr.reverse), ("push", false));
+
+    // A jump to an earlier slide is not Back: the slide's own transition plays.
+    show.tex = tex(1);
+    let a = show.state.goto(&doc, 0);
+    assert!(show.apply(a, &doc, 3.0));
+    let tr = show.trans.as_ref().expect("A's fade plays");
+    assert_eq!((tr.kind.as_str(), tr.reverse), ("fade", false));
+}
+
+#[test]
+fn a_reversed_transition_starts_on_the_slide_left_and_ends_on_the_one_come_back_to() {
+    // #1531: running the frames from the end, with the old and new slides trading places.
+    for kind in ["fade", "push", "wipe", "cover"] {
+        let start = transition_layers(kind, "", true, 0.0, 16.0 / 9.0);
+        let top = start.last().expect("a frame");
+        assert_eq!((top.source, top.alpha), (Source::Old, 1.0), "{kind}: the slide left is shown first");
+        let end = transition_layers(kind, "", true, 1.0, 16.0 / 9.0);
+        assert!(end.iter().all(|l| l.source == Source::New), "{kind}: only the slide come back to is left: {:?}", end);
+    }
+}
+
+#[test]
 fn media_in_the_click_sequence_plays_with_its_step() {
     // #116: media set to play in the click sequence never started; only a click on it did.
     let s = deckcraft_engine::Session::with_new();
