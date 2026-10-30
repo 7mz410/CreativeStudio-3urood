@@ -605,7 +605,7 @@ fn draw_pen_and_hints(ui: &mut Ui, show: &mut Show, f: &Fr, painter: &egui::Pain
         ctx.set_cursor_icon(egui::CursorIcon::None);
     } else if show.zoom_arm || show.grid {
         ctx.set_cursor_icon(egui::CursorIcon::Crosshair);
-    } else if !show.pointer_awake(now) && !show.reading {
+    } else if show.hides_idle_cursor(now) {
         // Idle first: a still pointer hides also over a clickable shape, such as a playing clip.
         ctx.set_cursor_icon(egui::CursorIcon::None);
         ctx.request_repaint_after(std::time::Duration::from_millis(500));

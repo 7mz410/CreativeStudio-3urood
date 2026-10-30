@@ -52,6 +52,79 @@ fn a_still_cursor_hides_over_a_clickable_shape() {
     assert_eq!(harness.output().platform_output.cursor_icon, egui::CursorIcon::None, "still for 3 s: hidden");
 }
 
+/// #1445: Keep mouse cursor visible leaves a still pointer showing over a link, so a branching
+/// deck's choices stay targetable; the setting outlives the show and the link still follows.
+#[test]
+fn keep_cursor_visible_leaves_a_still_cursor_over_a_link() {
+    let mut session = deckcraft_engine::Session::with_new();
+    let size = session.active().unwrap().doc.slide_size;
+    session.execute("slide.new", &json!({})).unwrap();
+    session.execute("slide.go", &json!({"index": 0})).unwrap();
+    let r = session.execute("shape.insert", &json!({"preset": "rect", "rect": [0.0, 0.0, size.width, size.height]})).unwrap();
+    session.execute("insert.hyperlink", &json!({"slide": 1, "ids": [r["id"]]})).unwrap();
+    let mut app = SlideApp::new(session, crate::Services::default());
+    app.ui.presenter_view = false;
+    app.run("show.keepCursor", json!({"on": true})).unwrap();
+    let mut harness = egui_kittest::Harness::builder().with_size(vec2(1000.0, 700.0)).with_step_dt(0.25).build_ui_state(
+        |ui, app: &mut SlideApp| {
+            app.logic(ui.ctx());
+            app.ui(ui);
+        },
+        app,
+    );
+    harness.run_steps(3);
+    harness.state_mut().start_show(0, false);
+    harness.run_steps(2);
+    harness.hover_at(pos2(500.0, 350.0));
+    harness.run_steps(14);
+    assert_eq!(harness.output().platform_output.cursor_icon, egui::CursorIcon::PointingHand, "still for 3 s: kept");
+    click_at(&mut harness, pos2(500.0, 350.0));
+    harness.run_steps(2);
+    assert_eq!(harness.state().show.as_ref().map(|s| s.state.slide), Some(1), "the link still follows");
+    assert!(harness.state().ui.show_keep_cursor, "the setting is kept for the next show");
+}
+
+/// #1445: Set Up Slide Show turns Keep mouse cursor visible on and off.
+#[test]
+fn set_up_slide_show_keeps_the_cursor_visible() {
+    use egui_kittest::kittest::Queryable;
+
+    let app = SlideApp::new(deckcraft_engine::Session::with_new(), crate::Services::default());
+    let mut harness = egui_kittest::Harness::builder().with_size(vec2(1200.0, 800.0)).build_ui_state(
+        |ui, app: &mut SlideApp| {
+            app.logic(ui.ctx());
+            app.ui(ui);
+        },
+        app,
+    );
+    for on in [true, false] {
+        harness.state_mut().run("app.dialog", json!({"id": "setupShow"})).unwrap();
+        harness.run_steps(6);
+        harness.get_by_label("Keep mouse cursor visible").click();
+        harness.run_steps(3);
+        harness.get_by_label("OK").click();
+        harness.run_steps(2);
+        assert!(harness.state().dialog.is_none());
+        assert_eq!(harness.state().ui.show_keep_cursor, on);
+    }
+}
+
+/// #1445: the idle hide follows the pointer's last move, Reading View and Keep mouse cursor visible.
+#[test]
+fn the_idle_cursor_hides_only_when_asked() {
+    let session = deckcraft_engine::Session::with_new();
+    let doc = session.active().unwrap().doc.clone();
+    let mut show = Show::new(&doc, 0, false, false);
+    show.last_move = 10.0;
+    assert!(!show.hides_idle_cursor(12.0), "moved 2 s ago");
+    assert!(show.hides_idle_cursor(13.0), "still for 3 s");
+    show.keep_cursor = true;
+    assert!(!show.hides_idle_cursor(13.0), "kept visible");
+    show.keep_cursor = false;
+    show.reading = true;
+    assert!(!show.hides_idle_cursor(13.0), "Reading View never hides it");
+}
+
 /// #1130: the Presenter View's All slides button opens the grid in that window, not on the audience screen.
 #[test]
 fn presenter_all_slides_does_not_cover_the_audience_screen() {
