@@ -4,7 +4,7 @@ use super::{Backstage, Icon, Outcome, Page, RichText, Sense, SlideApp, Tokens, U
 /// Save As and Change File Type: (id for [`SlideApp::export_as`], label, detail).
 pub const SAVE_TYPES: [(&str, &str, &str); 7] = [
     ("pptx", "PowerPoint Presentation (*.pptx)", "Opens in PowerPoint and other presentation apps"),
-    ("deckcraft", "3urood Presentation (*.deckcraft)", "3urood's own format: everything is kept"),
+    ("deckcraft", "3urood Presentation (*.3urood)", "3urood's own format: everything is kept"),
     ("pdf", "PDF (*.pdf)", "A fixed copy that keeps its layout on any device"),
     ("outline", "Outline (*.txt)", "The slide titles and bullet text as plain text"),
     ("rtf", "Outline/RTF (*.rtf)", "The slide titles and bullet text for word processors"),

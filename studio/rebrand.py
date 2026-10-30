@@ -31,7 +31,7 @@ RULES = [
     # The mark: the 3urood star (studio_mark.rs, generated from docs/studio/3urood.svg).
     ('crates/ui-egui/Cargo.toml', 'egui = { workspace = true, features = ["default_fonts", "monochrome_emoji_fonts"] }\n', 'egui = { workspace = true, features = ["default_fonts", "monochrome_emoji_fonts"] }\nvello_cpu = { workspace = true }\n', 'vello_cpu'),
     ('crates/ui-egui/src/lib.rs', 'pub mod canvas;\n', 'pub mod canvas;\npub mod studio_mark;\n', 'pub mod studio_mark;'),
-    ('crates/ui-egui/src/dialogs.rs', """    let orange = Color32::from_rgb(0xF2, 0x6B, 0x1D);
+    ('crates/ui-egui/src/dialogs/about.rs', """    let orange = Color32::from_rgb(0xF2, 0x6B, 0x1D);
     let deep = Color32::from_rgb(0xC2, 0x4E, 0x14);
     let card = r.shrink(r.width() * 0.08);
     p.rect_filled(card.translate(vec2(r.width() * 0.04, r.width() * 0.05)), CornerRadius::same((r.width() * 0.14) as u8), deep);
@@ -46,13 +46,13 @@ RULES = [
 """, """    // Creative Studio: the 3urood star.
     crate::studio_mark::paint(p, r);
 """),
-    ('crates/ui-egui/src/dialogs.rs', 'use egui::{Align2, Color32, CornerRadius, Rect, Sense, Stroke, Ui, pos2, vec2};', 'use egui::{Align2, Color32, CornerRadius, Rect, Sense, Stroke, Ui, vec2};'),
+    ('crates/ui-egui/src/dialogs/about.rs', 'use egui::{Align2, Color32, CornerRadius, Rect, Sense, Stroke, Ui, pos2, vec2};', 'use egui::{Align2, Color32, CornerRadius, Rect, Sense, Stroke, Ui, vec2};'),
     # About and start screen: our links, no Discord.
-    ('crates/ui-egui/src/dialogs.rs', '        ui.hyperlink_to("Join our community on Discord", deckcraft_engine::links::DISCORD);\n', ''),
-    ('crates/ui-egui/src/dialogs.rs', 'ui.hyperlink_to("getartcraft.com/apps/deckcraft", deckcraft_engine::links::APP_PAGE);', 'ui.hyperlink_to("3urood.studio.creative.ps", deckcraft_engine::links::APP_PAGE);'),
-    ('crates/ui-egui/src/dialogs.rs', '"Presentations and slide shows, rebuilt from scratch in pure Rust."', '"Presentations and slide shows, part of the Creative Studio suite. Built on DeckCraft by the ArtCraft team."'),
-    ('crates/ui-egui/src/backstage.rs', '            ui.hyperlink_to("Join our community on Discord", deckcraft_engine::links::DISCORD);\n', ''),
-    ('crates/ui-egui/src/backstage.rs', 'ui.hyperlink_to("Join the ArtCraft community on Discord", deckcraft_engine::links::DISCORD);', 'ui.hyperlink_to("Creative Studio", deckcraft_engine::links::WEBSITE);'),
+    ('crates/ui-egui/src/dialogs/about.rs', '        ui.hyperlink_to("Join our community on Discord", deckcraft_engine::links::DISCORD);\n', ''),
+    ('crates/ui-egui/src/dialogs/about.rs', 'ui.hyperlink_to("getartcraft.com/apps/deckcraft", deckcraft_engine::links::APP_PAGE);', 'ui.hyperlink_to("3urood.studio.creative.ps", deckcraft_engine::links::APP_PAGE);'),
+    ('crates/ui-egui/src/dialogs/about.rs', '"Presentations and slide shows, rebuilt from scratch in pure Rust."', '"Presentations and slide shows, part of the Creative Studio suite. Built on DeckCraft by the ArtCraft team."'),
+    ('crates/ui-egui/src/backstage/files.rs', '            ui.hyperlink_to("Join our community on Discord", deckcraft_engine::links::DISCORD);\n', ''),
+    ('crates/ui-egui/src/backstage/files.rs', 'ui.hyperlink_to("Join the ArtCraft community on Discord", deckcraft_engine::links::DISCORD);', 'ui.hyperlink_to("Creative Studio", deckcraft_engine::links::WEBSITE);'),
     # Web page and packages.
     ('apps/deckcraft-web/index.html', '<title>DeckCraft</title>', f'<title>{NAME}</title>'),
     ('apps/deckcraft-web/index.html', 'Loading DeckCraft&hellip;', f'Loading {NAME}&hellip;', 'ss-scene'),  # or the splash
@@ -70,13 +70,13 @@ RULES = [
      'pub const STUDIO_EXTENSION: &str = "3urood";\n', 'STUDIO_EXTENSION'),
     ('crates/engine/src/cmd/file.rs', 'pub const WRITABLE_EXTENSIONS: &[&str] = &["deckcraft", "pptx"',
      'pub const WRITABLE_EXTENSIONS: &[&str] = &["3urood", "deckcraft", "pptx"', '"3urood", "deckcraft", "pptx"'),
-    ('crates/ui-egui/src/lib.rs', '    lower.ends_with(".deckcraft")\n',
+    ('crates/ui-egui/src/app/files.rs', '    lower.ends_with(".deckcraft")\n',
      '    lower.ends_with(".3urood")\n        || lower.ends_with(".deckcraft")\n', 'lower.ends_with(".3urood")'),
-    ('crates/ui-egui/src/lib.rs', '            "deckcraft" => ("deckcraft", "deckcraft", false),',
+    ('crates/ui-egui/src/app/files.rs', '            "deckcraft" => ("deckcraft", "deckcraft", false),',
      '            "deckcraft" => ("3urood", "deckcraft", false),', '("3urood", "deckcraft", false)'),
-    ('crates/ui-egui/src/lib.rs', '        let ext = if format == "pptx" { "pptx" } else { "deckcraft" };',
+    ('crates/ui-egui/src/app/files.rs', '        let ext = if format == "pptx" { "pptx" } else { "deckcraft" };',
      '        let ext = if format == "pptx" { "pptx" } else { "3urood" };', 'else { "3urood" }'),
-    ('crates/ui-egui/src/backstage.rs', '("deckcraft", "3urood Presentation (*.deckcraft)"',
+    ('crates/ui-egui/src/backstage/info.rs', '("deckcraft", "3urood Presentation (*.deckcraft)"',
      '("deckcraft", "3urood Presentation (*.3urood)"', '*.3urood)'),
     ('apps/deckcraft/src/main.rs', '.add_filter("Presentations", &["deckcraft", "pptx", "potx", "ppsx"])\n'
      '                    .add_filter("3urood", &["deckcraft"])',
