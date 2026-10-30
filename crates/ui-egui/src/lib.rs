@@ -462,6 +462,8 @@ mod last_color_tests;
 #[cfg(test)]
 mod presenter_tests;
 #[cfg(test)]
+mod reflection_pane_tests;
+#[cfg(test)]
 mod replacefonts_tests;
 #[cfg(test)]
 mod reuse_picker_tests;
