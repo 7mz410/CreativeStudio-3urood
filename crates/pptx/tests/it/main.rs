@@ -14,6 +14,7 @@ mod kept_parts;
 mod locks;
 mod malformed;
 mod math_ns;
+mod media_timing;
 mod notes;
 mod ole;
 mod ole_vml;
