@@ -50,7 +50,7 @@ Calibration is the same as for the full number (see [docs/target-app-parity.md](
 `.pptx`, present, add tables and charts, share as PDF, review. Core workflows work end to end (build a deck, open and save `.pptx`, present with
 transitions, animations, media and presenter view, export PDF), but depth, fidelity and polish
 have known gaps, and PPTX has never been tested on a corpus of real decks. Beta needs ~75% ready
-and no blocking gap in `.pptx`: the real-deck corpus, the round-trip losses (#70, #74, #77),
+and no blocking gap in `.pptx`: the real-deck corpus, the round-trip losses (#70, #74),
 EMF/SVG pictures, the data-loss and startup-crash bugs (#60, #40, #59) and the beta list in
 [docs/roadmap.md](docs/roadmap.md).
 
@@ -123,11 +123,11 @@ ships 26.
 Ranked; detail and the full beta plan in [docs/roadmap.md](docs/roadmap.md).
 
 1. **No data loss, no startup crashes:** Close's save prompt (#60), Windows GPU crashes (#40, #59),
-   image paste (#53), editor soak tests. 10–20 h.
+   image paste on Windows (#1414), editor soak tests. 10–20 h.
 2. **PPTX on real decks:** the owned corpus now round-trips comments, links and actions, custom
    shows, rotated groups, inherited placeholders, text effects and body layout, theme effects,
    fills, bevels, connectors, tables, charts, animations, media, sections, masters, 3-D models
-   and animation bounce end. Still open: a corpus of real decks, #70, #74, #77, EMF+ records,
+   and animation bounce end. Still open: a corpus of real decks, #70, #74, EMF+ records,
    MicroType Express font subsets and SVG. 36–64 h.
 3. **Localization:** catalog, system language (#15), zh-Hans, es, fr, de, ja with IME. 27–46 h.
 4. **Output:** vector PDF, printing. 10–16 h.
