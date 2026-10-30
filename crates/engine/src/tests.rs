@@ -1426,6 +1426,14 @@ fn opening_a_file_lists_the_fonts_it_uses_that_are_missing() {
 }
 
 #[test]
+fn a_macos_hidden_system_font_is_not_reported_missing() {
+    let mut s = Session::with_new();
+    let r = s.execute("file.openBytes", &json!({"name": "a.pptx", "data": deck_in_font(".SF NS")})).unwrap();
+    assert_eq!(r["missingFonts"], json!([]));
+    assert!(s.doc().unwrap().missing_fonts.is_empty());
+}
+
+#[test]
 fn an_embedded_face_is_used_when_the_machine_lacks_it() {
     let mut p = deckcraft_model::Presentation::default();
     let slide = std::sync::Arc::make_mut(&mut p.slides[0]);
