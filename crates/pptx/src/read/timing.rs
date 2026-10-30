@@ -94,6 +94,13 @@ fn max_dur(e: &El, depth: usize) -> Option<u32> {
     best
 }
 
+/// Does every behaviour time node (`p:cBhvr/p:cTn`) under the effect node `c` carry `autoRev`?
+fn behaviour_auto_reverses(c: &El) -> bool {
+    let mut behaviours = vec![];
+    c.find_all("cBhvr", &mut behaviours);
+    !behaviours.is_empty() && behaviours.iter().all(|b| b.child("cTn").and_then(|t| t.bool("autoRev")).unwrap_or(false))
+}
+
 /// Flatten the timing tree into the Animation Pane list.
 pub fn animations(imp: &mut Imp, part: &Part, ctx: &IdCtx, timing: &El, shapes: &[Shape]) -> Vec<Animation> {
     let _ = (imp, part);
@@ -144,7 +151,9 @@ pub fn animations(imp: &mut Imp, part: &Part, ctx: &IdCtx, timing: &El, shapes: 
             trigger: f.trigger.and_then(|t| ctx.lookup(t)),
             preset_id: Some(preset),
             preset_subtype: Some(sub),
-            auto_reverse: c.bool("autoRev").unwrap_or(false),
+            // PowerPoint's "Auto-reverse" is `autoRev` on the behaviour nodes (`p:cBhvr/p:cTn`); Color Pulse
+            // always writes it there and plays back and forth on its own, so it isn't read as the option.
+            auto_reverse: c.bool("autoRev").unwrap_or(false) || (effect != "colorPulse" && behaviour_auto_reverses(c)),
             // PowerPoint's "Rewind when done playing" is `fill="remove"` on the effect node.
             rewind: c.attr("fill") == Some("remove"),
             smooth_start: c.f64("accel").map(|v| v / 100_000.0).unwrap_or(0.0),
