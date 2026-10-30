@@ -178,6 +178,27 @@ fn only_the_first_character_of_a_bullet_is_drawn() {
 }
 
 #[test]
+fn bullet_in_an_unavailable_unicode_symbol_font_keeps_its_character() {
+    // Google Slides bullets in "Noto Sans Symbols" (not installed) draw ❑ ❖, not a generic dot (#1347).
+    for c in ["\u{2751}", "\u{2756}", "\u{f0a7}"] {
+        assert_eq!(map_symbol_bullet(c, Some("Noto Sans Symbols")), c);
+    }
+    // The legacy symbol fonts still map their codes.
+    assert_eq!(map_symbol_bullet("q", Some("Wingdings")), "\u{2751}");
+    let (p, mut sh) = setup("One", 600.0, 300.0);
+    let para = &mut sh.text.as_mut().unwrap().paragraphs[0];
+    para.props.bullet = Some(Bullet::Char { char: "\u{2751}".into() });
+    para.props.bullet_font = Some("Noto Sans Symbols".into());
+    let l = lay(&p, &sh, 600.0, 300.0);
+    let bullet = l.runs.iter().find(|r| r.chars == (0, 0)).expect("bullet run");
+    assert_eq!(bullet.glyphs.len(), 1);
+    let square = deckcraft_fonts::first_glyph(&bullet.face, &['\u{2751}']);
+    let expected = if square != 0 { square } else { deckcraft_fonts::first_glyph(&bullet.face, &['\u{2022}']) };
+    assert_ne!(expected, 0, "the selected face must draw ❑ or the fallback dot");
+    assert_eq!(bullet.glyphs[0].0, expected, "draw the requested bullet when covered, else the dot");
+}
+
+#[test]
 fn shrink_on_overflow() {
     let text = (0..30).map(|i| format!("Line number {i}")).collect::<Vec<_>>().join("\n");
     let (p, sh) = setup(&text, 600.0, 200.0);

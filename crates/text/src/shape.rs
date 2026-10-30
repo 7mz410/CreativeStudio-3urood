@@ -93,9 +93,11 @@ pub(crate) fn shape_para(
                 Some(c) => c.to_string(),
                 None => map_symbol_bullet(char, props.bullet_font.as_deref()),
             };
-            if !st.face.covers(ch.chars().next().unwrap_or('•')) {
-                st.face = db.face("Inter", "Regular");
-            }
+            bullet_face(db, &mut st, &ch);
+            // A face the cascade still picks may lack the bullet: draw the dot rather than .notdef.
+            let chars: Vec<char> = ch.chars().collect();
+            let ch = if deckcraft_fonts::covers_cluster(&st.face, &chars) { ch } else { "•".into() };
+            bullet_face(db, &mut st, &ch);
             Some((ch, st))
         }
         Some(Bullet::AutoNum { scheme, start_at }) => {
