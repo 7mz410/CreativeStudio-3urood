@@ -5646,3 +5646,26 @@ fn invalid_ids_array_never_falls_back_to_the_selection() {
         assert!(s.doc().unwrap().shape(deckcraft_model::ShapeId(a as u32)).is_some(), "shape deleted for {ids}");
     }
 }
+
+#[test]
+fn table_cell_align_sets_the_horizontal_alignment() {
+    use deckcraft_model::text::{Align, Anchor};
+    let mut s = session();
+    let id = table_at(&mut s, &[100.0, 100.0], json!([["a", "b"], ["c", "d"]]));
+    s.execute("table.cellAlign", &json!({"id": id.0, "align": "center", "cells": [[0, 0], [1, 0]]})).unwrap();
+    s.execute("table.cellAlign", &json!({"id": id.0, "align": "right", "anchor": "bottom", "cells": [[0, 1]]})).unwrap();
+    let t = table_of(&s, id);
+    let al = |r, c| t.cell(r, c).unwrap().text.paragraphs.iter().map(|p| p.props.align).collect::<Vec<_>>();
+    assert_eq!(al(0, 0), vec![Some(Align::Center)]);
+    assert_eq!(al(1, 0), vec![Some(Align::Center)]);
+    assert_eq!(al(0, 1), vec![Some(Align::Right)]);
+    assert_eq!(al(1, 1), vec![None], "other cells are untouched");
+    assert_eq!(t.cell(0, 1).unwrap().anchor, Some(Anchor::Bottom));
+    assert_eq!(t.cell(0, 0).unwrap().anchor, None, "align alone leaves the vertical anchor");
+    assert!(s.execute("table.cellAlign", &json!({"id": id.0, "align": "diagonal"})).is_err());
+    // A value that is not a name is refused, not read as absent (which would set the anchor to top).
+    let rev = s.doc().unwrap().revision;
+    assert!(s.execute("table.cellAlign", &json!({"id": id.0, "align": 1})).is_err());
+    assert!(s.execute("table.cellAlign", &json!({"id": id.0, "align": "left", "anchor": true})).is_err());
+    assert_eq!(s.doc().unwrap().revision, rev);
+}
