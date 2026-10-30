@@ -4,6 +4,8 @@
 //! the same pair when it copies, and reads it back on paste: bold, italic and underline survive.
 //! Anything else in the markup is skipped. A hostile fragment is capped, never executed.
 
+use std::borrow::Cow;
+
 use deckcraft_model::text::{Paragraph, Run, RunProps, TextBody};
 
 const MAX_HTML: usize = 1 << 20;
@@ -77,7 +79,7 @@ pub fn html_to_body(html: &str) -> Option<TextBody> {
     let mut bold = 0i32;
     let mut italic = 0i32;
     let mut underline = 0i32;
-    let mut stack: Vec<(&'static str, i32, i32, i32)> = Vec::new();
+    let mut stack: Vec<(Cow<'static, str>, i32, i32, i32)> = Vec::new();
     let mut paragraphs: Vec<Paragraph> = vec![Paragraph::default()];
     let mut runs = 0usize;
     let mut skip = 0i32;
@@ -106,17 +108,18 @@ pub fn html_to_body(html: &str) -> Option<TextBody> {
                 continue;
             }
             if closing {
-                let kind = tag_kind(&name);
-                if !kind.is_empty() {
-                    let search_start = stack.len().saturating_sub(64);
-                    if let Some(offset) = stack[search_start..].iter().rposition(|e| e.0 == kind) {
-                        let pos = search_start + offset;
-                        let (_, db, di, du) = stack[pos];
-                        bold -= db;
-                        italic -= di;
-                        underline -= du;
-                        stack.truncate(pos);
-                    }
+                let kind = match tag_kind(&name) {
+                    "" => name.as_str(),
+                    kind => kind,
+                };
+                let search_start = stack.len().saturating_sub(64);
+                if let Some(offset) = stack[search_start..].iter().rposition(|e| e.0.as_ref() == kind) {
+                    let pos = search_start + offset;
+                    let (db, di, du) = (stack[pos].1, stack[pos].2, stack[pos].3);
+                    bold -= db;
+                    italic -= di;
+                    underline -= du;
+                    stack.truncate(pos);
                 }
                 if is_block(&name) {
                     new_para(&mut paragraphs);
@@ -133,7 +136,11 @@ pub fn html_to_body(html: &str) -> Option<TextBody> {
                 italic += di;
                 underline += du;
                 if !token.ends_with('/') && stack.len() < 128 {
-                    stack.push((tag_kind(&name), db, di, du));
+                    let kind = match tag_kind(&name) {
+                        "" => Cow::Owned(name.clone()),
+                        kind => Cow::Borrowed(kind),
+                    };
+                    stack.push((kind, db, di, du));
                 } else {
                     bold -= db;
                     italic -= di;
@@ -367,6 +374,25 @@ fn fold(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn style_on_other_tags_ends_at_their_close() {
+        type Prop = fn(&RunProps) -> bool;
+        let cases: [(&str, &str, Prop); 3] = [
+            ("a", "font-weight:bold", |p| p.bold == Some(true)),
+            ("td", "font-style:italic", |p| p.italic == Some(true)),
+            ("mark", "text-decoration:underline", |p| p.underline.is_some()),
+        ];
+        for (tag, style, prop) in cases {
+            let body = html_to_body(&format!("<p><{tag} style=\"{style}\">link</{tag}> plain</p>")).unwrap();
+            let runs = &body.paragraphs[0].runs;
+            assert_eq!(runs.len(), 2, "{tag}");
+            assert!(prop(&runs[0].props), "{tag}");
+            assert_eq!(runs[0].text, "link");
+            assert_eq!(runs[1].text, " plain");
+            assert!(runs[1].props.bold.is_none() && runs[1].props.italic.is_none() && runs[1].props.underline.is_none(), "{tag}");
+        }
+    }
 
     #[test]
     fn multibyte_after_ampersand_is_kept() {
