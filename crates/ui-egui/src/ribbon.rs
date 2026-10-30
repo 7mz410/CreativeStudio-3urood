@@ -237,7 +237,17 @@ pub fn show(app: &mut SlideApp, ui: &mut Ui) {
                 });
             });
         let r = scroll.inner_rect;
-        ui.ctx().data_mut(|d| d.insert_temp(spare_room_id(&tab), r.width() - scroll.content_size.x));
+        // A gallery sized from this reads it on the next frame, so a change (a resize, a tab
+        // shown for the first time) asks for one; within half a point it is the same layout.
+        let spare = r.width() - scroll.content_size.x;
+        let moved = ui.ctx().data_mut(|d| {
+            let was = d.get_temp::<f32>(spare_room_id(&tab));
+            d.insert_temp(spare_room_id(&tab), spare);
+            was.is_none_or(|was| (was - spare).abs() > 0.5)
+        });
+        if moved {
+            ui.ctx().request_repaint();
+        }
         let overflow = (scroll.content_size.x - r.width()).max(0.0);
         let offset = scroll.state.clamped_offset().x;
         // Record the rendered offset for `InputTarget`: the same window point hits a different
