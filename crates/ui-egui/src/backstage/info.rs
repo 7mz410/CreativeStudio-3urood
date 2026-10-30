@@ -225,14 +225,7 @@ pub(super) fn account(app: &mut SlideApp, ui: &mut Ui) {
             dim(ui, &crate::dialogs::version_line());
             dim(ui, "Open source under MIT OR Apache-2.0. Not affiliated with Microsoft.");
             ui.add_space(14.0);
-            if task(
-                ui,
-                Icon::Help,
-                "About 3urood",
-                "About 3urood",
-                "The version, the people and models who built it, and where to find us.",
-                true,
-            ) {
+            if task(ui, Icon::Help, "About 3urood", "About 3urood", "The version, the people and models who built it, and where to find us.", true) {
                 let _ = app.run("app.about", json!({}));
             }
             ui.hyperlink_to("Join our community on Discord", deckcraft_engine::links::DISCORD);

@@ -17,7 +17,6 @@ pub const UPDATE_APP: craft_update::app::App = craft_update::app::App {
 
 pub mod backstage;
 pub mod canvas;
-pub mod studio_mark;
 pub mod capture;
 pub mod control;
 pub mod dialogs;
@@ -32,6 +31,7 @@ pub mod settings;
 pub mod show;
 pub mod sorter;
 pub mod status;
+pub mod studio_mark;
 pub mod textures;
 pub mod theme;
 pub mod toast;
