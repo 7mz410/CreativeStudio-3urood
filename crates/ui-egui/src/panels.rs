@@ -14,6 +14,7 @@ mod animation;
 mod background;
 mod comments;
 mod designer;
+mod effect_presets;
 mod format_shape;
 mod smartart;
 mod thesaurus;
@@ -120,6 +121,9 @@ pub mod thumbs;
 
 #[cfg(test)]
 mod background_tests;
+
+#[cfg(test)]
+mod effect_presets_tests;
 
 #[cfg(test)]
 mod pattern_fill_tests;

@@ -1,3 +1,4 @@
+use super::effect_presets;
 use super::{Fill, Icon, ShapeKind, SlideApp, Tokens, Ui, color_button, cref_param, json, run, scheme, theme, vec2, widgets};
 
 /// Percent transparency (0 = opaque) of a solid fill, the same number `shape.fill`'s
@@ -47,17 +48,11 @@ fn format_tabs(app: &mut SlideApp, ui: &mut Ui, sh: &deckcraft_model::Shape) {
 
 fn effects_tab(app: &mut SlideApp, ui: &mut Ui, sh: &deckcraft_model::Shape) {
     ui.label(egui::RichText::new("Shadow").font(theme::bold(13.0)));
-    ui.horizontal_wrapped(|ui| {
-        for (l, v) in
-            [("None", "none"), ("Outer", "outer"), ("Bottom", "bottom"), ("Center", "center"), ("Inner", "inner"), ("Perspective", "perspective")]
-        {
-            if ui.button(l).clicked() {
-                run(app, "shape.effects", json!({"shadow": v}));
-            }
-        }
-    });
     let fx = sh.effects.clone().unwrap_or_default();
-    let shadow = fx.outer_shadow.as_ref().or(fx.inner_shadow.as_ref());
+    if let Some(v) = effect_presets::shadow_row(ui, effect_presets::shadow_preset_id(&fx)) {
+        run(app, "shape.effects", json!({"shadow": v}));
+    }
+    let shadow = fx.inner_shadow.as_ref().or(fx.outer_shadow.as_ref());
     if let Some(sw) = shadow {
         color_button(app, ui, "Color", None, |c| ("shape.effects".into(), json!({"shadowProps": {"color": c.as_ref().map(cref_param)}})));
         fx_slider(
@@ -72,6 +67,7 @@ fn effects_tab(app: &mut SlideApp, ui: &mut Ui, sh: &deckcraft_model::Shape) {
             "transparency",
             0.01,
         );
+        fx_slider(app, ui, ("shadow", sh.id.0, "s"), "Size", sw.sx * 100.0, 1.0..=200.0, "%", "shadowProps", "size", 0.01);
         fx_slider(app, ui, ("shadow", sh.id.0, "b"), "Blur", sw.blur, 0.0..=100.0, " pt", "shadowProps", "blur", 1.0);
         fx_slider(app, ui, ("shadow", sh.id.0, "a"), "Angle", sw.dir, 0.0..=359.0, "°", "shadowProps", "dir", 1.0);
         fx_slider(app, ui, ("shadow", sh.id.0, "d"), "Distance", sw.dist, 0.0..=200.0, " pt", "shadowProps", "dist", 1.0);
@@ -105,6 +101,9 @@ fn effects_tab(app: &mut SlideApp, ui: &mut Ui, sh: &deckcraft_model::Shape) {
     ui.add_space(6.0);
     ui.label(egui::RichText::new("Glow").font(theme::bold(13.0)));
     let radius = fx.glow.as_ref().map_or(0.0, |g| g.radius);
+    if let Some(r) = effect_presets::glow_row(ui, radius) {
+        run(app, "shape.effects", json!({"glowProps": {"radius": r}}));
+    }
     fx_slider(app, ui, ("glow", sh.id.0, "r"), "Size", radius, 0.0..=150.0, " pt", "glowProps", "radius", 1.0);
     if let Some(g) = &fx.glow {
         color_button(app, ui, "Color", None, |c| ("shape.effects".into(), json!({"glowProps": {"color": c.as_ref().map(cref_param)}})));
@@ -123,6 +122,9 @@ fn effects_tab(app: &mut SlideApp, ui: &mut Ui, sh: &deckcraft_model::Shape) {
     }
     ui.label(egui::RichText::new("Soft Edges").font(theme::bold(13.0)));
     let mut s = sh.effects.as_ref().and_then(|e| e.soft_edge).unwrap_or(0.0);
+    if let Some(r) = effect_presets::soft_edge_row(ui, s) {
+        run(app, "shape.effects", json!({"softEdges": r}));
+    }
     if ui.add(egui::Slider::new(&mut s, 0.0..=50.0).text("size (pt)")).drag_stopped() {
         run(app, "shape.effects", json!({"softEdges": s}));
     }
