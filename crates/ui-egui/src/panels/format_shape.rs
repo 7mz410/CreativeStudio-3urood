@@ -133,6 +133,33 @@ fn effects_tab(app: &mut SlideApp, ui: &mut Ui, sh: &deckcraft_model::Shape) {
     }
 }
 
+/// A group keeps no slide background fill of its own. It shows Slide background fill when every
+/// shape or text box in it has one, including when the group keeps a fill that a picture in it uses.
+fn members_have_background_fill(sh: &deckcraft_model::Shape) -> bool {
+    if !matches!(sh.kind, ShapeKind::Group { .. }) {
+        return false;
+    }
+    let (mut any, mut all) = (false, true);
+    deckcraft_model::walk(sh.children(), &mut |m, _| {
+        if matches!(m.kind, ShapeKind::Shape) {
+            any = true;
+            all &= m.fill == Some(Fill::Background);
+        }
+    });
+    any && all
+}
+
+/// Only a shape or text box saves a slide background fill. A group offers it when it holds one.
+fn selection_takes_background_fill(app: &SlideApp) -> bool {
+    let mut ok = false;
+    if let Some(st) = app.session.active() {
+        for s in st.selected_shapes() {
+            deckcraft_model::walk(std::slice::from_ref(s), &mut |m, _| ok |= matches!(m.kind, ShapeKind::Shape));
+        }
+    }
+    ok
+}
+
 /// Render the shape-format pane with fill/line, effects, size/properties, text, and picture tabs.
 pub(super) fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
@@ -269,23 +296,31 @@ pub(super) fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
         _ => {
             // Fill & Line.
             ui.label(egui::RichText::new("Fill").font(theme::bold(13.0)));
+            let members_background = members_have_background_fill(&sh);
             let kind = match &sh.fill {
+                _ if members_background => "background",
                 None => "auto",
                 Some(Fill::None) => "none",
                 Some(Fill::Solid { .. }) => "solid",
                 Some(Fill::Gradient(_)) => "gradient",
                 Some(Fill::Picture(_)) => "picture",
                 Some(Fill::Pattern(_)) => "pattern",
+                Some(Fill::Background) => "background",
                 _ => "auto",
             };
+            let background_ok = selection_takes_background_fill(app);
             for (l, k) in [
                 ("No fill", "none"),
                 ("Solid fill", "solid"),
                 ("Gradient fill", "gradient"),
                 ("Picture or texture fill", "picture"),
                 ("Pattern fill", "pattern"),
+                ("Slide background fill", "background"),
                 ("Automatic", "auto"),
             ] {
+                if k == "background" && !background_ok {
+                    continue;
+                }
                 if ui.radio(kind == k, l).clicked() {
                     match k {
                         "none" => run(app, "shape.fill", json!({"none": true})),
@@ -297,6 +332,7 @@ pub(super) fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
                         ),
                         "pattern" => run(app, "shape.fill", json!({"pattern": {"preset": "pct25", "fg": "accent1", "bg": "bg1"}})),
                         "picture" => pick_fill_picture(app),
+                        "background" => run(app, "shape.fill", json!({"background": true})),
                         _ => run(app, "shape.fill", json!({"reset": true})),
                     }
                 }
@@ -312,7 +348,7 @@ pub(super) fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
             }
             // `shape.fill {transparency}` changes a solid fill (an automatic one through its
             // effective color) and a picture fill; a gradient has a transparency per stop.
-            let transparency = matches!(sh.fill, None | Some(Fill::Solid { .. } | Fill::Picture(_)));
+            let transparency = !members_background && matches!(sh.fill, None | Some(Fill::Solid { .. } | Fill::Picture(_)));
             ui.horizontal(|ui| {
                 if !transparency {
                     return;
@@ -336,10 +372,13 @@ pub(super) fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
                     ui.data_mut(|d| d.insert_temp(id, v));
                 }
             });
-            if let Some(Fill::Picture(pf)) = &sh.fill {
+            // A group that keeps a fill for its pictures shows no editor for that fill while its
+            // shapes have the slide background fill.
+            let shown_fill = sh.fill.as_ref().filter(|_| !members_background);
+            if let Some(Fill::Picture(pf)) = shown_fill {
                 picture_fill_options(app, ui, sh.id.0, pf);
             }
-            if let Some(Fill::Gradient(g)) = &sh.fill {
+            if let Some(Fill::Gradient(g)) = shown_fill {
                 let sc = scheme(app);
                 if let Some(ng) = crate::fillui::gradient_editor(ui, "shape-grad", g, &sc) {
                     run(app, "shape.fill", json!({"gradient": crate::fillui::gradient_json(&ng)}));
@@ -350,7 +389,7 @@ pub(super) fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
                     run(app, "shape.fill", json!({"gradient": crate::fillui::gradient_json(&ng)}));
                 }
             }
-            if let Some(Fill::Pattern(pt)) = &sh.fill
+            if let Some(Fill::Pattern(pt)) = shown_fill
                 && let Some(np) = crate::fillui::pattern_editor(ui, pt, &scheme(app))
             {
                 run(app, "shape.fill", json!({"pattern": crate::fillui::pattern_json(&np)}));
