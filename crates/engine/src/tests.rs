@@ -5786,3 +5786,20 @@ fn action_button_fill_follows_the_theme() {
     let sh = st.doc.slides[0].shapes.iter().find(|x| x.fill.is_none() && x.style.is_some()).unwrap();
     assert!(sh.fill.is_none(), "no explicit fill: the style binds it to accent1");
 }
+
+#[test]
+fn invalid_slide_index_never_falls_back_to_the_selection_in_export_commands() {
+    let mut s = session();
+    let dir = std::env::temp_dir().join(format!("deckcraft-badslide-{}", std::process::id()));
+    let path = dir.join("a.png");
+    for slide in [json!(-1), json!(1.5), json!("two")] {
+        let r = s.execute("file.export", &json!({"path": path.to_string_lossy(), "slide": slide, "scale": 0.1}));
+        assert!(matches!(r, Err(crate::EngineError::BadParams { .. })), "export slide {slide} gave {r:?}");
+        assert!(!path.exists(), "export wrote a file for {slide}");
+        let r = s.execute("file.render", &json!({"slide": slide, "scale": 0.1}));
+        assert!(matches!(r, Err(crate::EngineError::BadParams { .. })), "render slide {slide} gave {r:?}");
+        let r = s.execute("slide.colorAt", &json!({"slide": slide, "x": 1, "y": 1, "scale": 0.1}));
+        assert!(matches!(r, Err(crate::EngineError::BadParams { .. })), "colorAt slide {slide} gave {r:?}");
+    }
+    let _ = std::fs::remove_dir_all(&dir);
+}
