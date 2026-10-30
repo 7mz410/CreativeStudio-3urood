@@ -98,7 +98,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Date & Time",
             ["Insert", "Text"],
             None,
-            "{format?: datetime1..datetime13, update?: bool, language?: en-US|en-GB|fr-FR|ja-JP|sv-SE} — no keys opens the dialog",
+            "{format?: datetime1..datetime13, update?: bool, language?: en-US|en-GB|fr-FR|ja-JP|sv-SE} — no keys opens the dialog; in the Handout or Notes Master view it fills the selected date placeholder (else the master's own) and answers where: \"master\"",
             has_slide,
             date_time
         ),
@@ -470,6 +470,70 @@ mod tests {
             assert!(err.to_string().contains("insert.dateTime"), "{err}");
             assert_eq!(s.doc().unwrap().revision, rev);
             assert_eq!(undo(&s), undos);
+        }
+    }
+
+    /// ZZ1: in the handout and notes master views the date goes into the master's date placeholder
+    /// (not the current slide), so the exported handout and notes pages show it.
+    #[test]
+    fn on_a_page_master_the_date_fills_its_date_placeholder() {
+        for view in ["view.handoutMaster", "view.notesMaster"] {
+            let mut s = session();
+            s.execute(view, &json!({})).unwrap();
+            let (id, master) = {
+                let st = s.doc().unwrap();
+                let m = crate::page_master(&st.doc, st.selection.target).unwrap().clone();
+                (m.shapes.iter().find(|x| x.ph_type() == Some(deckcraft_model::PhType::Date)).unwrap().id.0, m)
+            };
+            assert!(master.shapes.iter().find(|x| x.id.0 == id).and_then(|x| x.text.as_ref()).is_none_or(|t| t.text().is_empty()));
+            s.execute("edit.select", &json!({"ids": [id]})).unwrap();
+            let v = s.execute("insert.dateTime", &json!({"format": "datetime10", "update": true})).unwrap();
+            assert_eq!(v["where"], "master", "{view}: {v}");
+            assert!(date_run(&s).is_none(), "the slide keeps no date");
+            let st = s.doc().unwrap();
+            let m = crate::page_master(&st.doc, st.selection.target).unwrap();
+            let run = m
+                .shapes
+                .iter()
+                .find(|x| x.id.0 == id)
+                .and_then(|x| x.text.as_ref())
+                .and_then(|t| t.paragraphs.first())
+                .and_then(|p| p.runs.first())
+                .cloned()
+                .unwrap();
+            assert!(matches!(run.kind, RunKind::Field { ref field } if field == "datetime10"), "{view}: {run:?}");
+            let placed = deckcraft_render::place_master_texts(&st.doc, m, 1);
+            assert!(placed.iter().any(|p| p.body.text() == run.text && run.text.contains(':')), "{view}: the page shows the date");
+            s.execute("edit.undo", &json!({})).unwrap();
+            let st = s.doc().unwrap();
+            let m = crate::page_master(&st.doc, st.selection.target).unwrap();
+            assert!(m.shapes.iter().find(|x| x.id.0 == id).and_then(|x| x.text.as_ref()).is_none_or(|t| t.text().is_empty()), "one undo");
+            // A fixed date in a placeholder whose run is en-GB reads day first, and the answer
+            // reports the text that was written, not the en-US sample.
+            s.execute("insert.dateTime", &json!({"format": "datetime1", "update": false, "language": "en-GB"})).unwrap();
+            let v = s.execute("insert.dateTime", &json!({"format": "datetime1", "update": false})).unwrap();
+            let st = s.doc().unwrap();
+            let m = crate::page_master(&st.doc, st.selection.target).unwrap();
+            let run = m
+                .shapes
+                .iter()
+                .find(|x| x.id.0 == id)
+                .and_then(|x| x.text.as_ref())
+                .and_then(|t| t.paragraphs.first())
+                .and_then(|p| p.runs.first())
+                .cloned()
+                .unwrap();
+            assert_eq!(run.props.lang.as_deref(), Some("en-GB"), "{view}: {run:?}");
+            assert_eq!(v["text"].as_str(), Some(run.text.as_str()), "{view}: the answer reports the written text: {v}");
+            let now = deckcraft_text::datetime::DateTime::now_local().unwrap();
+            let gb = deckcraft_text::datetime::field_text("datetime1", Some("en-GB"), now);
+            assert_eq!(Some(run.text.as_str()), gb.as_deref(), "{view}: the date in en-GB order (dd/mm/yyyy)");
+            // No date placeholder: refused, nothing changed.
+            let key = if view == "view.handoutMaster" { "handout.placeholders" } else { "notes.placeholders" };
+            s.execute(key, &json!({"date": false})).unwrap();
+            let rev = s.doc().unwrap().revision;
+            assert!(s.execute("insert.dateTime", &json!({"format": "datetime1"})).is_err());
+            assert_eq!(s.doc().unwrap().revision, rev);
         }
     }
 
