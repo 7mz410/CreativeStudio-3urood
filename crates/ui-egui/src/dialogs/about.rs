@@ -20,7 +20,7 @@ pub fn about(_app: &mut SlideApp, ui: &mut Ui) {
     ui.vertical_centered(|ui| {
         let (r, _) = ui.allocate_exact_size(vec2(64.0, 64.0), Sense::hover());
         paint_logo(ui.painter(), r);
-        ui.label(egui::RichText::new("DeckCraft").font(theme::bold(22.0)));
+        ui.label(egui::RichText::new("3urood").font(theme::bold(22.0)));
         ui.label(egui::RichText::new(version_line()).color(t.text_dim));
         ui.add_space(6.0);
         ui.label("Presentations and slide shows, part of the Creative Studio suite. Built on DeckCraft by the ArtCraft team.");

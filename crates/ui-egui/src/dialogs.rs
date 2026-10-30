@@ -2,7 +2,7 @@
 //! About window. The start screen is File › Home (`backstage.rs`).
 
 use deckcraft_color::SchemeSlot;
-use egui::{Align2, Color32, CornerRadius, Rect, Sense, Stroke, Ui, pos2, vec2};
+use egui::{Align2, Color32, CornerRadius, Rect, Sense, Stroke, Ui, vec2};
 use serde_json::{Value, json};
 
 use crate::SlideApp;
@@ -48,7 +48,7 @@ fn title(id: &str) -> &'static str {
         "paragraph" => "Paragraph",
         "tabs" => "Tabs",
         "font" => "Font",
-        "about" => "About DeckCraft",
+        "about" => "About 3urood",
         "preferences" => "Preferences",
         "autocorrect" => "AutoCorrect",
         "gridOptions" => "Grid Options",
@@ -70,10 +70,10 @@ fn title(id: &str) -> &'static str {
         "smartart" => "Choose a SmartArt Graphic",
         "bullets" => "Bullets and Numbering",
         "action" => "Action Settings",
-        "quit" => "DeckCraft",
+        "quit" => "3urood",
         "themeColors" => "Create New Theme Colors",
         "themeFonts" => "Create New Theme Fonts",
-        _ => "DeckCraft",
+        _ => "3urood",
     }
 }
 

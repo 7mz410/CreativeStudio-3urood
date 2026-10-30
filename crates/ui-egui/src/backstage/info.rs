@@ -4,7 +4,7 @@ use super::{Backstage, Icon, Outcome, Page, RichText, Sense, SlideApp, Tokens, U
 /// Save As and Change File Type: (id for [`SlideApp::export_as`], label, detail).
 pub const SAVE_TYPES: [(&str, &str, &str); 7] = [
     ("pptx", "PowerPoint Presentation (*.pptx)", "Opens in PowerPoint and other presentation apps"),
-    ("deckcraft", "DeckCraft Presentation (*.deckcraft)", "DeckCraft's own format: everything is kept"),
+    ("deckcraft", "3urood Presentation (*.deckcraft)", "3urood's own format: everything is kept"),
     ("pdf", "PDF (*.pdf)", "A fixed copy that keeps its layout on any device"),
     ("outline", "Outline (*.txt)", "The slide titles and bullet text as plain text"),
     ("rtf", "Outline/RTF (*.rtf)", "The slide titles and bullet text for word processors"),
@@ -212,7 +212,7 @@ pub(super) fn account(app: &mut SlideApp, ui: &mut Ui) {
                 .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, "Appearance"));
             ui.add_space(16.0);
             heading(ui, "User Information");
-            dim(ui, "DeckCraft has no accounts: there is nothing to sign in to, and your presentations stay on your device.");
+            dim(ui, "3urood has no accounts: there is nothing to sign in to, and your presentations stay on your device.");
         });
         ui.add_space(40.0);
         ui.vertical(|ui| {
@@ -220,7 +220,7 @@ pub(super) fn account(app: &mut SlideApp, ui: &mut Ui) {
             ui.horizontal(|ui| {
                 let (r, _) = ui.allocate_exact_size(vec2(40.0, 40.0), Sense::hover());
                 crate::dialogs::paint_logo(ui.painter(), r);
-                ui.label(RichText::new("DeckCraft").font(theme::bold(24.0)).color(t.text));
+                ui.label(RichText::new("3urood").font(theme::bold(24.0)).color(t.text));
             });
             dim(ui, &crate::dialogs::version_line());
             dim(ui, "Open source under MIT OR Apache-2.0. Not affiliated with Microsoft.");
@@ -228,8 +228,8 @@ pub(super) fn account(app: &mut SlideApp, ui: &mut Ui) {
             if task(
                 ui,
                 Icon::Help,
-                "About DeckCraft",
-                "About DeckCraft",
+                "About 3urood",
+                "About 3urood",
                 "The version, the people and models who built it, and where to find us.",
                 true,
             ) {
