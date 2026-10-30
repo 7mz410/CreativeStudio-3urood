@@ -160,6 +160,98 @@ fn selection_takes_background_fill(app: &SlideApp) -> bool {
     ok
 }
 
+/// Format Shape ▸ Size & Properties: size, rotation, scale, position and alt text.
+fn size_tab(app: &mut SlideApp, ui: &mut Ui, sh: &deckcraft_model::Shape, x: deckcraft_model::Xfrm, single: bool, uid: u64) {
+    let lock_id = ui.scope_id().with("fmt-lock-aspect");
+    let mut lock: bool = ui.data_mut(|d| d.get_temp(lock_id).unwrap_or(false));
+    let locked = lock;
+    // Scale is measured from the size the shape had when this tab first showed it, like the
+    // Size and Position dialog; the origin choice is kept for the session.
+    let base_id = ui.scope_id().with(("fmt-scale-base", uid, sh.id.0));
+    let (base_w, base_h): (f64, f64) = ui.data_mut(|d| d.get_temp(base_id).unwrap_or((x.w, x.h)));
+    ui.data_mut(|d| d.insert_temp(base_id, (base_w, base_h)));
+    let origin_id = ui.scope_id().with("fmt-origin-center");
+    let mut center: bool = single && ui.data_mut(|d| d.get_temp(origin_id).unwrap_or(false));
+    let len = app.session.prefs.units;
+    let mut fields = |ui: &mut Ui, label: &str, id: &str, v: f64, key: &str, cmd: &str, angle: bool| {
+        let (unit, suffix) = if angle { (1.0, "°") } else { (len.points_per_unit(), len.suffix()) };
+        ui.horizontal(|ui| {
+            ui.add_sized(vec2(90.0, 20.0), egui::Label::new(label));
+            if let Some(nv) = widgets::spinner(ui, id, label, v / unit, 0.1, suffix, 70.0) {
+                let mut p = json!({key: nv * unit});
+                if cmd == "shape.resize" && locked {
+                    p["lockAspect"] = json!(true);
+                }
+                run(app, cmd, p);
+            }
+        });
+    };
+    ui.label(egui::RichText::new("Size").font(theme::bold(13.0)));
+    fields(ui, "Height", "fh", x.h, "h", "shape.resize", false);
+    fields(ui, "Width", "fw", x.w, "w", "shape.resize", false);
+    fields(ui, "Rotation", "fr", x.rot, "deg", "shape.rotate", true);
+    for (label, id, cur, base, key) in [("Scale Height", "fsh", x.h, base_h, "h"), ("Scale Width", "fsw", x.w, base_w, "w")] {
+        ui.add_enabled_ui(single, |ui| {
+            ui.horizontal(|ui| {
+                ui.add_sized(vec2(90.0, 20.0), egui::Label::new(label));
+                let pct = if base > 0.0 { cur / base * 100.0 } else { 100.0 };
+                if let Some(nv) = widgets::spinner(ui, id, label, pct, 1.0, "%", 70.0)
+                    && nv > 0.0
+                {
+                    let mut p = json!({key: base * nv / 100.0});
+                    if locked {
+                        p["lockAspect"] = json!(true);
+                    }
+                    run(app, "shape.sizePosition", p);
+                }
+            })
+        });
+    }
+    if ui.checkbox(&mut lock, "Lock aspect ratio").changed() {
+        ui.data_mut(|d| d.insert_temp(lock_id, lock));
+    }
+    ui.add_space(6.0);
+    ui.label(egui::RichText::new("Position").font(theme::bold(13.0)));
+    ui.add_enabled_ui(single, |ui| {
+        ui.horizontal(|ui| {
+            ui.add_sized(vec2(90.0, 20.0), egui::Label::new("From"));
+            let combo =
+                craft_ui::ComboBox::from_id_salt("fmt-origin").selected_text(if center { "Center" } else { "Top Left Corner" }).show_ui(ui, |ui| {
+                    ui.selectable_value(&mut center, false, "Top Left Corner");
+                    ui.selectable_value(&mut center, true, "Center");
+                });
+            combo.response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, "From"));
+        })
+    });
+    if single {
+        ui.data_mut(|d| d.insert_temp(origin_id, center));
+    }
+    let (dx, dy) = if center { (x.w / 2.0, x.h / 2.0) } else { (0.0, 0.0) };
+    // The spinner shows `value / unit`; `shape.move` takes the top-left corner, so a centre
+    // reading is shifted by half the size in both directions.
+    let (px, py) = (x.x + dx, x.y + dy);
+    let mut pos = |ui: &mut Ui, label: &str, id: &str, v: f64, off: f64, key: &str| {
+        ui.horizontal(|ui| {
+            ui.add_sized(vec2(90.0, 20.0), egui::Label::new(label));
+            if let Some(nv) = widgets::spinner(ui, id, label, v / len.points_per_unit(), 0.1, len.suffix(), 70.0) {
+                run(app, "shape.move", json!({key: nv * len.points_per_unit() - off}));
+            }
+        });
+    };
+    pos(ui, "Horizontal", "fx", px, dx, "x");
+    pos(ui, "Vertical", "fy", py, dy, "y");
+    ui.add_space(6.0);
+    ui.label(egui::RichText::new("Alt Text").font(theme::bold(13.0)));
+    let id = ui.scope_id().with(("alt", uid, sh.id.0));
+    let stored: Option<(String, String)> = ui.data_mut(|d| d.get_temp(id));
+    let mut alt = widgets::text_draft(stored, &sh.descr);
+    let r = ui.add(egui::TextEdit::multiline(&mut alt).hint_text("Alt text").desired_rows(3).desired_width(f32::INFINITY));
+    if r.lost_focus() && alt != sh.descr {
+        run(app, "shape.altText", json!({"text": alt}));
+    }
+    ui.data_mut(|d| d.insert_temp(id, (sh.descr.clone(), alt)));
+}
+
 /// Render the shape-format pane with fill/line, effects, size/properties, text, and picture tabs.
 pub(super) fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
@@ -169,51 +261,14 @@ pub(super) fn format_shape(app: &mut SlideApp, ui: &mut Ui) {
         return;
     };
     let x = deckcraft_engine::cmd::xfrm_of(&st.doc, &st.selection, &sh);
+    // Scale and a centre origin work from the shown shape's size, so they need a single shape.
+    let single = st.selected_shapes().len() == 1;
     let uid = st.uid;
     format_tabs(app, ui, &sh);
     ui.separator();
     match app.ui.format_tab.as_str() {
         "effects" => effects_tab(app, ui, &sh),
-        "size" => {
-            let lock_id = egui::Id::unique("fmt-lock-aspect");
-            let mut lock: bool = ui.data_mut(|d| d.get_temp(lock_id).unwrap_or(false));
-            let locked = lock;
-            let len = app.session.prefs.units;
-            let mut fields = |ui: &mut Ui, label: &str, id: &str, v: f64, key: &str, cmd: &str, angle: bool| {
-                let (unit, suffix) = if angle { (1.0, "°") } else { (len.points_per_unit(), len.suffix()) };
-                ui.horizontal(|ui| {
-                    ui.add_sized(vec2(90.0, 20.0), egui::Label::new(label));
-                    if let Some(nv) = widgets::spinner(ui, id, label, v / unit, 0.1, suffix, 70.0) {
-                        let mut p = json!({key: nv * unit});
-                        if cmd == "shape.resize" && locked {
-                            p["lockAspect"] = json!(true);
-                        }
-                        run(app, cmd, p);
-                    }
-                });
-            };
-            ui.label(egui::RichText::new("Size").font(theme::bold(13.0)));
-            fields(ui, "Height", "fh", x.h, "h", "shape.resize", false);
-            fields(ui, "Width", "fw", x.w, "w", "shape.resize", false);
-            fields(ui, "Rotation", "fr", x.rot, "deg", "shape.rotate", true);
-            if ui.checkbox(&mut lock, "Lock aspect ratio").changed() {
-                ui.data_mut(|d| d.insert_temp(lock_id, lock));
-            }
-            ui.add_space(6.0);
-            ui.label(egui::RichText::new("Position").font(theme::bold(13.0)));
-            fields(ui, "Horizontal", "fx", x.x, "x", "shape.move", false);
-            fields(ui, "Vertical", "fy", x.y, "y", "shape.move", false);
-            ui.add_space(6.0);
-            ui.label(egui::RichText::new("Alt Text").font(theme::bold(13.0)));
-            let id = ui.scope_id().with(("alt", uid, sh.id.0));
-            let stored: Option<(String, String)> = ui.data_mut(|d| d.get_temp(id));
-            let mut alt = widgets::text_draft(stored, &sh.descr);
-            let r = ui.add(egui::TextEdit::multiline(&mut alt).hint_text("Alt text").desired_rows(3).desired_width(f32::INFINITY));
-            if r.lost_focus() && alt != sh.descr {
-                run(app, "shape.altText", json!({"text": alt}));
-            }
-            ui.data_mut(|d| d.insert_temp(id, (sh.descr.clone(), alt)));
-        }
+        "size" => size_tab(app, ui, &sh, x, single, uid),
         "text" => {
             ui.label(egui::RichText::new("Text Fill").font(theme::bold(13.0)));
             color_button(app, ui, "Color", None, |c| match c {
