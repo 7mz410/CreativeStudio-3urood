@@ -1,4 +1,4 @@
-use super::{Color32, CornerRadius, Rect, Sense, SlideApp, Stroke, Tokens, Ui, pos2, theme, vec2};
+use super::{Rect, Sense, SlideApp, Tokens, Ui, theme, vec2};
 
 /// Room the About credits need for their table; the About tab keeps its compact size.
 pub(super) const CREDITS_SIZE: egui::Vec2 = vec2(640.0, 380.0);
