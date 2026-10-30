@@ -126,6 +126,9 @@ pub fn html_to_body(html: &str) -> Option<TextBody> {
                 }
                 continue;
             }
+            if is_block(&name) {
+                new_para(&mut paragraphs);
+            }
             if is_break(&name) {
                 new_para(&mut paragraphs);
                 continue;
@@ -391,6 +394,15 @@ mod tests {
             assert_eq!(runs[0].text, "link");
             assert_eq!(runs[1].text, " plain");
             assert!(runs[1].props.bold.is_none() && runs[1].props.italic.is_none() && runs[1].props.underline.is_none(), "{tag}");
+        }
+    }
+
+    #[test]
+    fn text_before_opening_block_tag_is_separate_paragraph() {
+        for tag in ["div", "p", "li", "h1"] {
+            let body = html_to_body(&format!("Hello<{tag}>world</{tag}>")).unwrap();
+            let texts: Vec<String> = body.paragraphs.iter().map(|p| p.runs.iter().map(|r| r.text.as_str()).collect()).collect();
+            assert_eq!(texts, ["Hello", "world"], "{tag}");
         }
     }
 
