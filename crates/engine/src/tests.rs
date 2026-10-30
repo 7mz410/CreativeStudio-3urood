@@ -1426,6 +1426,14 @@ fn opening_a_file_lists_the_fonts_it_uses_that_are_missing() {
 }
 
 #[test]
+fn a_macos_hidden_system_font_is_not_reported_missing() {
+    let mut s = Session::with_new();
+    let r = s.execute("file.openBytes", &json!({"name": "a.pptx", "data": deck_in_font(".SF NS")})).unwrap();
+    assert_eq!(r["missingFonts"], json!([]));
+    assert!(s.doc().unwrap().missing_fonts.is_empty());
+}
+
+#[test]
 fn an_embedded_face_is_used_when_the_machine_lacks_it() {
     let mut p = deckcraft_model::Presentation::default();
     let slide = std::sync::Arc::make_mut(&mut p.slides[0]);
@@ -2320,6 +2328,15 @@ fn shape_effects_props_adjust_shadow_glow_and_reflection() {
     let f = fx(&s);
     assert!(f.outer_shadow.is_none());
     assert_eq!(f.inner_shadow.unwrap().blur, 3.0);
+    // Size scales both axes (PowerPoint's 0–200%); out-of-range values clamp.
+    s.execute("shape.effects", &json!({"shadow": "inner"})).unwrap();
+    s.execute("shape.effects", &json!({"shadowProps": {"size": 1.5}})).unwrap();
+    let sw = fx(&s).inner_shadow.unwrap();
+    assert_eq!((sw.sx, sw.sy), (1.5, 1.5));
+    s.execute("shape.effects", &json!({"shadowProps": {"size": 9}})).unwrap();
+    assert_eq!(fx(&s).inner_shadow.unwrap().sx, 2.0);
+    s.execute("shape.effects", &json!({"shadowProps": {"size": 0}})).unwrap();
+    assert_eq!(fx(&s).inner_shadow.unwrap().sy, 0.01);
     // Glow: size, colour, transparency; size 0 removes it.
     s.execute("shape.effects", &json!({"glowProps": {"radius": 12, "transparency": 0.5}})).unwrap();
     let g = fx(&s).glow.unwrap();
@@ -4421,6 +4438,16 @@ fn autoformat_starts_bulleted_and_numbered_lists_as_you_type() {
     assert_eq!(s.execute("text.autocorrect", &json!({})).unwrap()["lists"], true);
     s.execute("text.autocorrect", &json!({"lists": false})).unwrap();
     assert_eq!(typed(&mut s, "* x"), ("* x".to_string(), none));
+    // List AutoFormat is independent of the Replace text as you type setting.
+    s.execute("text.autocorrect", &json!({"on": false, "lists": true})).unwrap();
+    assert_eq!(typed(&mut s, "*"), ("*".to_string(), Some(Bullet::None)));
+    s.execute("text.insert", &json!({"text": " "})).unwrap();
+    assert_eq!(para(&s), (String::new(), ch("•")));
+    s.execute("text.delete", &json!({"dir": "backward"})).unwrap();
+    assert_eq!(para(&s), ("* ".to_string(), Some(Bullet::None)));
+    // Word replacements still run while list formatting is disabled.
+    s.execute("text.autocorrect", &json!({"on": true, "lists": false})).unwrap();
+    assert_eq!(typed(&mut s, "teh "), ("The ".to_string(), Some(Bullet::None)));
 }
 
 #[test]
@@ -5645,4 +5672,161 @@ fn invalid_ids_array_never_falls_back_to_the_selection() {
         assert!(matches!(r, Err(crate::EngineError::BadParams { .. })), "invalid ids {ids} gave {r:?}");
         assert!(s.doc().unwrap().shape(deckcraft_model::ShapeId(a as u32)).is_some(), "shape deleted for {ids}");
     }
+}
+
+#[test]
+fn table_cell_align_sets_the_horizontal_alignment() {
+    use deckcraft_model::text::{Align, Anchor};
+    let mut s = session();
+    let id = table_at(&mut s, &[100.0, 100.0], json!([["a", "b"], ["c", "d"]]));
+    s.execute("table.cellAlign", &json!({"id": id.0, "align": "center", "cells": [[0, 0], [1, 0]]})).unwrap();
+    s.execute("table.cellAlign", &json!({"id": id.0, "align": "right", "anchor": "bottom", "cells": [[0, 1]]})).unwrap();
+    let t = table_of(&s, id);
+    let al = |r, c| t.cell(r, c).unwrap().text.paragraphs.iter().map(|p| p.props.align).collect::<Vec<_>>();
+    assert_eq!(al(0, 0), vec![Some(Align::Center)]);
+    assert_eq!(al(1, 0), vec![Some(Align::Center)]);
+    assert_eq!(al(0, 1), vec![Some(Align::Right)]);
+    assert_eq!(al(1, 1), vec![None], "other cells are untouched");
+    assert_eq!(t.cell(0, 1).unwrap().anchor, Some(Anchor::Bottom));
+    assert_eq!(t.cell(0, 0).unwrap().anchor, None, "align alone leaves the vertical anchor");
+    assert!(s.execute("table.cellAlign", &json!({"id": id.0, "align": "diagonal"})).is_err());
+    // A value that is not a name is refused, not read as absent (which would set the anchor to top).
+    let rev = s.doc().unwrap().revision;
+    assert!(s.execute("table.cellAlign", &json!({"id": id.0, "align": 1})).is_err());
+    assert!(s.execute("table.cellAlign", &json!({"id": id.0, "align": "left", "anchor": true})).is_err());
+    assert_eq!(s.doc().unwrap().revision, rev);
+}
+
+/// In Slide Master / layout view the insert commands edit the master or layout; their answers say
+/// so with `editing`, and on slides carry no such key.
+#[test]
+fn insert_answers_carry_editing_in_master_and_layout_view() {
+    let mut s = session();
+    let ins = json!({"preset": "rect", "rect": [10.0, 10.0, 100.0, 100.0]});
+    s.execute("view.slideMaster", &json!({"layout": 0})).unwrap();
+    let r = s.execute("shape.insert", &ins).unwrap();
+    assert_eq!(r["editing"]["kind"], "layout", "{r}");
+    assert!(r["editing"]["name"].is_string(), "{r}");
+    let r = s.execute("insert.textBox", &json!({"rect": [10.0, 10.0, 100.0, 50.0], "text": "x"})).unwrap();
+    assert_eq!(r["editing"]["kind"], "layout", "{r}");
+    s.execute("view.slideMaster", &json!({"master": 0})).unwrap();
+    let r = s.execute("shape.insert", &ins).unwrap();
+    assert_eq!(r["editing"]["kind"], "master", "{r}");
+    s.execute("view.closeMaster", &json!({})).unwrap();
+    let r = s.execute("shape.insert", &ins).unwrap();
+    assert!(r.get("editing").is_none(), "{r}");
+}
+
+/// MM4: moving a group's child through a command refits the group's box to its children, as
+/// PowerPoint does, and the children stay where they were drawn.
+#[test]
+fn moving_a_group_child_refits_the_group() {
+    let mut s = session();
+    s.execute("slide.new", &json!({"layout": "blank"})).unwrap();
+    let ins = |s: &mut Session, p: serde_json::Value| s.execute("shape.insert", &p).unwrap()["id"].as_u64().unwrap();
+    let a = ins(&mut s, json!({"preset": "rect", "rect": [100, 100, 100, 50]}));
+    let b = ins(&mut s, json!({"preset": "rect", "rect": [300, 100, 100, 50]}));
+    let g = s.execute("arrange.group", &json!({"ids": [a, b]})).unwrap()["id"].as_u64().unwrap();
+    let gb = |s: &Session| s.doc().unwrap().shape(ShapeId(g as u32)).unwrap().xfrm.unwrap();
+    assert_eq!((gb(&s).x, gb(&s).w), (100.0, 300.0));
+    s.execute("shape.move", &json!({"id": b, "dx": 100, "dy": 60})).unwrap();
+    let x = gb(&s);
+    assert_eq!((x.x, x.y, x.w, x.h), (100.0, 100.0, 400.0, 110.0), "group follows its children: {x:?}");
+    // The child is where it was moved to on the slide.
+    let r = s.execute("slide.inspect", &json!({})).unwrap();
+    assert!(r.to_string().contains("400"), "{r}");
+    s.execute("shape.setBounds", &json!({"ids": [a], "x": 20, "y": 20, "w": 100, "h": 50})).unwrap();
+    let x = gb(&s);
+    assert_eq!((x.x, x.y, x.w), (20.0, 20.0, 480.0), "{x:?}");
+}
+
+/// HH9: Reset Picture discards the picture's formatting (adjustments, artistic effect, picture
+/// style effects and outline) but not the frame's shape (Change Shape / Crop to Shape).
+#[test]
+fn picture_reset_keeps_the_frame_shape() {
+    let mut img = image::RgbaImage::new(40, 30);
+    img.pixels_mut().for_each(|p| *p = image::Rgba([200, 30, 30, 255]));
+    let mut png = Vec::new();
+    image::DynamicImage::ImageRgba8(img).write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
+    let mut s = Session::with_new();
+    s.execute("slide.new", &json!({"layout": "blank"})).unwrap();
+    s.execute("insert.picture", &json!({"name": "a.png", "data": cmd::base64_encode(&png)})).unwrap();
+    s.execute("shape.change", &json!({"preset": "roundRect"})).unwrap();
+    s.execute("picture.adjust", &json!({"brightness": 0.3})).unwrap();
+    let geom = s.doc().unwrap().selected_shapes()[0].geom.clone();
+    assert_ne!(geom, deckcraft_model::Geom::preset("rect"));
+    s.execute("picture.reset", &json!({})).unwrap();
+    let sh = s.doc().unwrap().selected_shapes()[0].clone();
+    assert_eq!(sh.geom, geom, "the frame shape stays");
+    match &sh.kind {
+        deckcraft_model::ShapeKind::Picture { fill } => assert_eq!(fill.adjust, Default::default()),
+        _ => panic!("not a picture"),
+    }
+    let doc = command_specs().iter().find(|c| c.id == "picture.reset").unwrap().params;
+    assert!(doc.contains("frame shape"), "{doc}");
+}
+
+/// HH12: exporting the same slide twice to one PNG path after an edit overwrites the file with
+/// the new picture (not a bug: the second file differs).
+#[test]
+fn exporting_a_slide_again_overwrites_the_png_with_the_edit() {
+    /// Removes the folder when the test ends, a failed assertion included.
+    struct Cleanup(std::path::PathBuf);
+    impl Drop for Cleanup {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+    // A folder of this run's own: created exclusively (never one an earlier or parallel run left).
+    let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_nanos());
+    let dir = (0..100)
+        .map(|k| std::env::temp_dir().join(format!("deckcraft-hh12-{}-{stamp}-{k}", std::process::id())))
+        .find(|d| std::fs::create_dir(d).is_ok())
+        .expect("a fresh temporary folder");
+    let _cleanup = Cleanup(dir.clone());
+    let png = dir.join("slide.png");
+    let mut s = session();
+    let path = png.to_string_lossy().to_string();
+    s.execute("file.export", &json!({"path": path, "format": "png", "slide": 0, "scale": 0.5})).unwrap();
+    let first = std::fs::read(&png).unwrap();
+    s.execute("shape.insert", &json!({"preset": "rect", "rect": [100, 100, 400, 300]})).unwrap();
+    s.execute("shape.fill", &json!({"color": "#FF0000"})).unwrap();
+    s.execute("file.export", &json!({"path": path, "format": "png", "slide": 0, "scale": 0.5})).unwrap();
+    let second = std::fs::read(&png).unwrap();
+    assert_ne!(first, second, "the second export replaced the file with the edited slide");
+}
+
+#[test]
+fn action_button_fill_follows_the_theme() {
+    let mut s = session();
+    let id = s.execute("insert.actionButton", &json!({"kind": "next"})).unwrap()["id"].clone();
+    let fill = |s: &mut Session| {
+        let r = s.execute("slide.inspect", &json!({})).unwrap();
+        r["shapes"].as_array().unwrap().iter().find(|x| x["id"] == id).unwrap()["fill"].clone()
+    };
+    let before = fill(&mut s);
+    assert!(before.as_str().is_some_and(|f| f.starts_with('#')), "{before}");
+    s.execute("design.theme", &json!({"name": "Ember"})).unwrap();
+    let after = fill(&mut s);
+    assert_ne!(before, after, "the button takes the new theme's accent1");
+    let st = s.doc().unwrap();
+    let sh = st.doc.slides[0].shapes.iter().find(|x| x.fill.is_none() && x.style.is_some()).unwrap();
+    assert!(sh.fill.is_none(), "no explicit fill: the style binds it to accent1");
+}
+
+#[test]
+fn invalid_slide_index_never_falls_back_to_the_selection_in_export_commands() {
+    let mut s = session();
+    let dir = std::env::temp_dir().join(format!("deckcraft-badslide-{}", std::process::id()));
+    let path = dir.join("a.png");
+    for slide in [json!(-1), json!(1.5), json!("two")] {
+        let r = s.execute("file.export", &json!({"path": path.to_string_lossy(), "slide": slide, "scale": 0.1}));
+        assert!(matches!(r, Err(crate::EngineError::BadParams { .. })), "export slide {slide} gave {r:?}");
+        assert!(!path.exists(), "export wrote a file for {slide}");
+        let r = s.execute("file.render", &json!({"slide": slide, "scale": 0.1}));
+        assert!(matches!(r, Err(crate::EngineError::BadParams { .. })), "render slide {slide} gave {r:?}");
+        let r = s.execute("slide.colorAt", &json!({"slide": slide, "x": 1, "y": 1, "scale": 0.1}));
+        assert!(matches!(r, Err(crate::EngineError::BadParams { .. })), "colorAt slide {slide} gave {r:?}");
+    }
+    let _ = std::fs::remove_dir_all(&dir);
 }
