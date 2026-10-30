@@ -180,7 +180,10 @@ A presentation is edited by running commands on it:
   deckcraft-cli run --cmd 'slide.new={{\"title\":\"Q3 results\"}}' --save q3.deckcraft
 
 `deckcraft-cli help SUBCOMMAND`, or `deckcraft-cli SUBCOMMAND --help`, explains one subcommand;
-`deckcraft-cli help run` explains how to write a command.",
+`deckcraft-cli help run` explains how to write a command.
+
+If an output reader closes early, run, render, render-transition and convert continue; their exit
+status reflects the work, not output delivery. Stop the process to cancel them.",
         list.join("\n")
     )
 }
