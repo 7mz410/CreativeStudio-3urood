@@ -5712,3 +5712,77 @@ fn moving_a_group_child_refits_the_group() {
     let x = gb(&s);
     assert_eq!((x.x, x.y, x.w), (20.0, 20.0, 480.0), "{x:?}");
 }
+
+/// HH9: Reset Picture discards the picture's formatting (adjustments, artistic effect, picture
+/// style effects and outline) but not the frame's shape (Change Shape / Crop to Shape).
+#[test]
+fn picture_reset_keeps_the_frame_shape() {
+    let mut img = image::RgbaImage::new(40, 30);
+    img.pixels_mut().for_each(|p| *p = image::Rgba([200, 30, 30, 255]));
+    let mut png = Vec::new();
+    image::DynamicImage::ImageRgba8(img).write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
+    let mut s = Session::with_new();
+    s.execute("slide.new", &json!({"layout": "blank"})).unwrap();
+    s.execute("insert.picture", &json!({"name": "a.png", "data": cmd::base64_encode(&png)})).unwrap();
+    s.execute("shape.change", &json!({"preset": "roundRect"})).unwrap();
+    s.execute("picture.adjust", &json!({"brightness": 0.3})).unwrap();
+    let geom = s.doc().unwrap().selected_shapes()[0].geom.clone();
+    assert_ne!(geom, deckcraft_model::Geom::preset("rect"));
+    s.execute("picture.reset", &json!({})).unwrap();
+    let sh = s.doc().unwrap().selected_shapes()[0].clone();
+    assert_eq!(sh.geom, geom, "the frame shape stays");
+    match &sh.kind {
+        deckcraft_model::ShapeKind::Picture { fill } => assert_eq!(fill.adjust, Default::default()),
+        _ => panic!("not a picture"),
+    }
+    let doc = command_specs().iter().find(|c| c.id == "picture.reset").unwrap().params;
+    assert!(doc.contains("frame shape"), "{doc}");
+}
+
+/// HH12: exporting the same slide twice to one PNG path after an edit overwrites the file with
+/// the new picture (not a bug: the second file differs).
+#[test]
+fn exporting_a_slide_again_overwrites_the_png_with_the_edit() {
+    /// Removes the folder when the test ends, a failed assertion included.
+    struct Cleanup(std::path::PathBuf);
+    impl Drop for Cleanup {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+    // A folder of this run's own: created exclusively (never one an earlier or parallel run left).
+    let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_nanos());
+    let dir = (0..100)
+        .map(|k| std::env::temp_dir().join(format!("deckcraft-hh12-{}-{stamp}-{k}", std::process::id())))
+        .find(|d| std::fs::create_dir(d).is_ok())
+        .expect("a fresh temporary folder");
+    let _cleanup = Cleanup(dir.clone());
+    let png = dir.join("slide.png");
+    let mut s = session();
+    let path = png.to_string_lossy().to_string();
+    s.execute("file.export", &json!({"path": path, "format": "png", "slide": 0, "scale": 0.5})).unwrap();
+    let first = std::fs::read(&png).unwrap();
+    s.execute("shape.insert", &json!({"preset": "rect", "rect": [100, 100, 400, 300]})).unwrap();
+    s.execute("shape.fill", &json!({"color": "#FF0000"})).unwrap();
+    s.execute("file.export", &json!({"path": path, "format": "png", "slide": 0, "scale": 0.5})).unwrap();
+    let second = std::fs::read(&png).unwrap();
+    assert_ne!(first, second, "the second export replaced the file with the edited slide");
+}
+
+#[test]
+fn action_button_fill_follows_the_theme() {
+    let mut s = session();
+    let id = s.execute("insert.actionButton", &json!({"kind": "next"})).unwrap()["id"].clone();
+    let fill = |s: &mut Session| {
+        let r = s.execute("slide.inspect", &json!({})).unwrap();
+        r["shapes"].as_array().unwrap().iter().find(|x| x["id"] == id).unwrap()["fill"].clone()
+    };
+    let before = fill(&mut s);
+    assert!(before.as_str().is_some_and(|f| f.starts_with('#')), "{before}");
+    s.execute("design.theme", &json!({"name": "Ember"})).unwrap();
+    let after = fill(&mut s);
+    assert_ne!(before, after, "the button takes the new theme's accent1");
+    let st = s.doc().unwrap();
+    let sh = st.doc.slides[0].shapes.iter().find(|x| x.fill.is_none() && x.style.is_some()).unwrap();
+    assert!(sh.fill.is_none(), "no explicit fill: the style binds it to accent1");
+}
